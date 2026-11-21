@@ -69,7 +69,8 @@ Card syntax inside code fences, inline code, inline math and one-line HTML comme
 - **Daily goal, streak and stats**: reviews per day for the last 30 days, cards coming due over the next 14, true retention, and how many cards are new, learning and in review. Each chart can also be read as a table.
 - **Offline PWA.** After the first visit to a production build the app, fonts, KaTeX and the code highlighter are all cached; it can be installed and used without a connection.
 - **Your data is yours.** Cards, schedule and history are stored in IndexedDB in your browser. Settings → Export progress writes one JSON file; importing it on another browser or device restores everything.
-- Light and dark themes following the system setting, and a layout that works on a phone.
+- Light and dark themes following the system setting, and a layout that works on a phone, with the answer buttons at the bottom of the screen.
+- **Built to be usable without a mouse or with low vision:** a skip button, visible focus everywhere, text at 4.5:1 contrast or better, 44px touch targets, and respect for the reduced-motion and forced-colours settings. This was checked in Chromium with scripts and the keyboard, not yet with a screen reader.
 
 ![A review: the answer with highlighted code, and the four rating buttons with their next intervals](docs/screenshots/review.png)
 
@@ -109,7 +110,7 @@ CI runs all four on every push. `.github/workflows/deploy.yml` builds and publis
 - The browser cannot watch your files. After editing notes, import them again (the preview shows what changed).
 - Only text is imported. Local images and Obsidian `![[embeds]]` are shown as a name, not the file. Images linked by `http(s)` URL are loaded from their server when the card is shown.
 - Picking or dropping a folder depends on browser support; on most phones you can only pick files or paste text.
-- The automated browser tests run in Chromium only.
+- The automated browser tests run in Chromium only, and the design was checked there too. Firefox and Safari are untested.
 - A day ends at local midnight, and FSRS runs with its default parameters.
 
 ## Roadmap

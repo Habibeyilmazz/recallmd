@@ -5,10 +5,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-Changes from an independent first-run review: a fresh clone, the README quickstart followed literally, and a read of the whole codebase.
+Two rounds of changes. The first was an independent first-run review: a fresh clone, the README quickstart followed literally, and a read of the whole codebase. The second was a design and accessibility pass: every screen looked at in screenshots of the running app at 1180px, 390px and 320px, light and dark, and walked with the keyboard.
+
+### Added
+
+- A "Skip to content" button, a tab title per page ("Stats | recallmd"), and focus that moves to the page when the route changes.
+- Empty states that say what to do: the Decks page with no cards points to "Add notes" and to the sample deck in Settings, and a chart with nothing in it says why instead of drawing an empty axis.
+- Key hints under the review buttons (`Space` Good, `Esc` Back to decks, `Z` Undo), hidden where there is no keyboard.
 
 ### Fixed
 
+- Importing notes, removing a deck, erasing everything and adding the sample deck ignored a write that the browser refused (a full disk, for example): nothing changed and nothing was said. They now show the same "Something could not be saved" message as a failed answer, and that message stays in view while the page scrolls.
+- A card with a wide table or a long URL widened the whole page on a phone. Long words now break and a table scrolls sideways inside the card.
+- A card answered in one tab could come up again in a review session that was already open in another tab.
+- On the Decks page the "new" and "cards" counts sat a few pixels above the deck name and did not line up down the list.
+- The edges of text fields were 1.3:1 against the page and are now above 3:1. Placeholder text in the paste dialog was 3.4:1 on the dark theme. The progress bar's yellow fill had no visible edge on the light theme.
+- Rating buttons were announced as "Good 10m 3": the key is now a shortcut (`aria-keyshortcuts`) and not part of the name.
 - A setext heading underline (`=====`) or a row of equals signs was read as a `==highlight==` and became a cloze card hiding a single `=`.
 - Two tabs open at once could schedule a card from a state the other tab had already replaced. Every write is now announced on a `BroadcastChannel` and the other tabs reload their data.
 - Undo left the answer in the day's review count if the tab had reloaded its data since the answer was given.
@@ -16,6 +28,12 @@ Changes from an independent first-run review: a fresh clone, the README quicksta
 
 ### Changed
 
+- Review: the answer buttons stay at the bottom of the window whatever the card's length, and on a phone the card fills the screen above them. "Show answer" and the four ratings share one height, so nothing below them moves when the answer appears. The ratings are tinted by meaning. The answer fades in (not with reduced motion).
+- Decks: folders are bold and the decks inside them are not. On touch screens every control is at least 44px tall and tags are chips.
+- Stats: "No data yet" is no longer set as large as a number, and "Longest" names its unit.
+- The screen shown when the browser blocks storage explains what happened and offers a retry.
+- Bars and the highlighter keep their meaning in forced-colours (Windows High Contrast) mode.
+- README screenshots retaken from the new build.
 - The paste dialog says plainly that pasting under a deck name you already used replaces that deck.
 - README: the required Node version is 22.12 or newer (Vitest 5 does not run on Node 20), and dropping files works on the Decks page, not on every page. `package.json` has a matching `engines` field.
 - `npm install` no longer reports audit warnings: an `overrides` entry moves `workbox-build`'s `glob` to a patched release.
@@ -42,7 +60,12 @@ First release.
 - Commands: `npm run dev` (port 4130), `npm run typecheck`, `npm test`, `npm run build`, `npm run preview` (port 4131), `npm run e2e` (needs a build first).
 - All logic lives in `src/lib/` as pure functions with tests next to them; `src/views/` is thin. Start with `parser.ts` and `scheduler.ts`.
 - `Card.seq` exists because IndexedDB returns cards in id order; `byNote` restores note order after loading.
-- Tabs stay in sync through `onChangeElsewhere` in `db.ts` (a `BroadcastChannel` message after every committed write) and a reload in `store.ts`. What is left: a review session's queue is fixed when it starts, and a reload that lands within a few milliseconds of a local answer can show stale numbers until the next reload (storage is always right). Both are too unlikely for one person to justify more code.
+- Tabs stay in sync through `onChangeElsewhere` in `db.ts` (a `BroadcastChannel` message after every committed write) and a reload in `store.ts`; an open review session drops cards answered elsewhere through `syncQueue` in `scheduler.ts`. What is left: cards that became due or were imported after a session started join it only when it is started again, and a reload that lands within a few milliseconds of a local answer can show stale numbers until the next reload (storage is always right).
+- `store.importNotes`, `deleteCards` and `replaceAll` never reject: they resolve to `false` after reporting the failure, so a caller only has to skip its success message.
+- Design: one stylesheet, `src/styles.css`, no component library. The idea is cool paper, blue-black ink and one yellow highlighter; the highlighter marks the current page, the primary action, progress and what is due, and nothing else. Colours are custom properties at the top of the file, with the dark theme right under them. Touch rules are under `@media (pointer: coarse)`, phone layout under `(max-width: 30rem)`.
+- How the design pass was checked, for anyone repeating it: Playwright scripts (not kept) drove the dev server through every state at 1180, 390 and 320px in both themes, computed the contrast of every text node against its background, measured every control, and pressed Tab through the pages. No text was under 4.5:1, nothing overflowed sideways, and no touch target was under 44px except the checkbox inside its label. Not checked: Firefox, Safari, a real screen reader, a real phone.
+- When measuring sideways overflow under Playwright's `isMobile`, compare `scrollWidth` with the device width, not `innerWidth`: a phone zooms out to fit a page that is too wide and `innerWidth` grows with it. `e2e/app.spec.ts` has the test.
+- `scripts/screenshots.mjs` runs with reduced motion so it cannot catch the answer halfway through fading in.
 - The `overrides` entry for `glob` in `package.json` exists only to clear `npm audit`. Remove it once `workbox-build` depends on glob 14.0.2 or newer by itself; after touching it, check that `npm run build` still reports 37 precache entries and that the offline end-to-end test passes.
 - `db.ts` calls `tx.commit()` on purpose: without it an answer given just before a reload was lost. `e2e/app.spec.ts` has the regression test.
 - The Content-Security-Policy is injected by a small plugin in `vite.config.ts`, for builds only.

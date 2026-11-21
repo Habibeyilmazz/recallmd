@@ -12,7 +12,8 @@ const DAYS = 10;
 const day = (n, hour = 9) => new Date(2026, 10, 21 - n, hour, 0);
 
 const browser = await chromium.launch();
-const context = await browser.newContext({ viewport: { width: 1180, height: 820 }, deviceScaleFactor: 2 });
+// reducedMotion: a screenshot must not catch the answer halfway through fading in.
+const context = await browser.newContext({ viewport: { width: 1180, height: 820 }, deviceScaleFactor: 2, reducedMotion: 'reduce' });
 const page = await context.newPage();
 const show = page.getByRole('button', { name: /Show answer/ });
 const card = page.getByRole('article', { name: 'Flashcard' });
@@ -55,7 +56,7 @@ await page.getByRole('heading', { level: 1 }).waitFor();
 await page.screenshot({ path: out('decks.png') });
 
 // The review screenshot comes from a first run: the sample deck's card with code in its answer.
-const fresh = await browser.newContext({ viewport: { width: 1180, height: 820 }, deviceScaleFactor: 2 });
+const fresh = await browser.newContext({ viewport: { width: 1180, height: 820 }, deviceScaleFactor: 2, reducedMotion: 'reduce' });
 const first = await fresh.newPage();
 await first.goto(URL_BASE);
 await first.getByRole('link', { name: 'Study now' }).click();
@@ -85,7 +86,7 @@ await page.screenshot({ path: out('import.png') });
 await page.keyboard.press('Escape');
 
 // Phone-sized and dark: a first run again, first card answered.
-const phone = await browser.newContext({ viewport: { width: 390, height: 780 }, deviceScaleFactor: 2, colorScheme: 'dark' });
+const phone = await browser.newContext({ viewport: { width: 390, height: 780 }, deviceScaleFactor: 2, reducedMotion: 'reduce', colorScheme: 'dark' });
 const small = await phone.newPage();
 await small.goto(URL_BASE);
 await small.getByRole('link', { name: 'Study now' }).click();
