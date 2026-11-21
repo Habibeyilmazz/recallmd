@@ -1,9 +1,12 @@
 import 'fake-indexeddb/auto';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { DEFAULT_SETTINGS, cleanSettings, makeBackup, parseBackup, type AppData } from './data';
 import * as db from './db';
 import { planImport } from './importer';
 import { schedule, type ReviewLog } from './scheduler';
+
+// DOMPurify needs a DOM; db.ts only uses the parsing side of markdown.ts.
+vi.mock('dompurify', () => ({ default: { addHook() {}, sanitize: (html: string) => html } }));
 
 const NOW = new Date(2026, 5, 15, 12).getTime();
 
@@ -170,6 +173,20 @@ describe('db', () => {
     expect(await db.imagePaths()).toEqual(['v/img/cell.png']);
     expect(await (await db.getImage('v/img/cell.png'))!.text()).toBe('new');
     expect(await db.getImage('v/img/other.png')).toBeUndefined();
+  });
+
+  it('drops stored images that no card shows any more', async () => {
+    const png = (t: string) => new Blob([t], { type: 'image/png' });
+    const plan = planImport((await db.loadAll()).cards, () => false, [{ path: 'v/b.md', text: 'q4 :: ![[gone.png]]' }]);
+    await db.applyImport(plan, new Map(), [{ path: 'v/img/gone.png', file: png('x') }]);
+    expect(await db.imagePaths()).toEqual(['v/img/cell.png', 'v/img/gone.png']);
+    await db.deleteCards(plan.upsert.map((c) => c.id)); // the note's card is removed
+    expect(await db.imagePaths()).toEqual(['v/img/cell.png']);
+    const edit = planImport((await db.loadAll()).cards, () => false, [{ path: 'v/a.md', text: 'q3 :: plain now' }]);
+    await db.applyImport(edit, new Map()); // the card stops showing its image
+    expect(await db.imagePaths()).toEqual([]);
+    const back = planImport((await db.loadAll()).cards, () => false, [{ path: 'v/a.md', text: 'q3 :: ![[cell.png]]' }]);
+    await db.applyImport(back, new Map(), [{ path: 'v/img/cell.png', file: png('new') }]); // for the next test
   });
 
   it('restores a backup over whatever was there', async () => {

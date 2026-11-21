@@ -1,5 +1,9 @@
 import 'fake-indexeddb/auto';
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
+
+// DOMPurify needs a DOM; db.ts only uses the parsing side of markdown.ts.
+vi.mock('dompurify', () => ({ default: { addHook() {}, sanitize: (html: string) => html } }));
+
 
 it('upgrading a database made before images were stored keeps its cards and adds image storage', async () => {
   // The version 1 layout, as the first release created it.

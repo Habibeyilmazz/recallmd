@@ -5,6 +5,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed (reliability pass, round 13)
+
+- An image no card showed any more stayed in storage until "Erase everything" (a gap reported by round 12, reproduced first). After an import and after removing a deck's cards, stored images that no card's reference resolves to are now deleted (`pruneImages` in `src/lib/db.ts`). Unit test: "drops stored images that no card shows any more" (failed before the fix).
+- Probed the parser with a BOM, CRLF and bare CR, empty sides, fenced code, front matter, CJK and emoji, a 2 MB line and 50 000 lines: nothing to fix.
+- Not done: images are still not in the JSON export; no screen reader run; Firefox and Safari untested; the Obsidian `#flashcards` tags and end marker.
+
 ### Added (feature round 12)
 
 Chosen by importing an Obsidian-style vault as a newcomer would: a card whose whole point is a picture (`What is this? :: ![[diagram.png]]`) showed only "[embed: diagram.png]", and vaults are full of such cards. The Obsidian `#flashcards` tags and end marker matter only to users of that plugin, so images came first.

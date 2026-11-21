@@ -134,7 +134,7 @@ CI runs all four on every push. `.github/workflows/deploy.yml` builds and publis
 - Several tabs share one set of data and tell each other about every change: a card you answer in one tab leaves a review session that is open in another. Cards that became due or were imported after a session started join it only when you start it again.
 - The browser cannot watch your files. After editing notes, import them again (the preview shows what changed).
 - A paragraph with so many highlights that its cloze cards would hold more than about 2 million characters in all is skipped with a warning; split it up.
-- Images are imported, other attachments are not: an embedded note, PDF or audio file (`![[Other note]]`) is shown as a name. Stored images are not in the progress export, and an image no card uses any more stays stored until "Erase everything". Images linked by `http(s)` URL are loaded from their server when the card is shown (without a `Referer` header, but the server still sees your IP address).
+- Images are imported, other attachments are not: an embedded note, PDF or audio file (`![[Other note]]`) is shown as a name. Stored images are not in the progress export,. Images linked by `http(s)` URL are loaded from their server when the card is shown (without a `Referer` header, but the server still sees your IP address).
 - Picking or dropping a folder depends on browser support; on most phones you can only pick files or paste text.
 - The automated browser tests run in Chromium only, and the design was checked there too. Firefox and Safari are untested.
 - A day ends at local midnight, and FSRS runs with its default parameters.

@@ -1,6 +1,8 @@
 // IndexedDB persistence. The dataset is small, so it is loaded whole and written through.
 import { cleanSettings, type AppData, type Settings } from './data';
 import type { ImportPlan } from './importer';
+import { resolveImage } from './media';
+import { imageRefs } from './markdown';
 import { byNote, type Card } from './parser';
 import type { CardState, ReviewLog } from './scheduler';
 
@@ -88,8 +90,8 @@ export interface ImageFile {
 }
 
 /** Writes an import and the images its cards show. Progress of removed cards is kept, so re-adding a note restores it. */
-export function applyImport(plan: ImportPlan, states: ReadonlyMap<string, CardState>, images: ImageFile[] = []): Promise<void> {
-  return write(['cards', 'states', 'media'], (s) => {
+export async function applyImport(plan: ImportPlan, states: ReadonlyMap<string, CardState>, images: ImageFile[] = []): Promise<void> {
+  await write(['cards', 'states', 'media'], (s) => {
     for (const { path, file } of images) s.media.put(file, path);
     for (const id of plan.remove) s.cards.delete(id);
     for (const card of plan.upsert) s.cards.put(card);
@@ -99,6 +101,18 @@ export function applyImport(plan: ImportPlan, states: ReadonlyMap<string, CardSt
       s.states.delete(from);
     }
   });
+  await pruneImages();
+}
+
+/** Deletes the stored images that no card shows. */
+async function pruneImages(): Promise<void> {
+  const tx = (await open()).transaction(['cards', 'media'], 'readonly');
+  const [cards, keys] = await Promise.all([done<Card[]>(tx.objectStore('cards').getAll()), done(tx.objectStore('media').getAllKeys())]);
+  const paths = keys.map(String);
+  const used = new Set<string>();
+  for (const c of cards) for (const ref of new Set([...imageRefs(c.front), ...imageRefs(c.back)])) used.add(resolveImage(ref, c.source, paths) ?? '');
+  const unused = paths.filter((p) => !used.has(p));
+  if (unused.length) await write(['media'], (s) => unused.forEach((p) => s.media.delete(p)));
 }
 
 /** Paths of every stored image. */
@@ -112,8 +126,9 @@ export async function getImage(path: string): Promise<Blob | undefined> {
   return done<Blob | undefined>(tx.objectStore('media').get(path));
 }
 
-export function deleteCards(ids: string[]): Promise<void> {
-  return write(['cards'], (s) => ids.forEach((id) => s.cards.delete(id)));
+export async function deleteCards(ids: string[]): Promise<void> {
+  await write(['cards'], (s) => ids.forEach((id) => s.cards.delete(id)));
+  await pruneImages();
 }
 
 /** Saves a review. Resolves to the log's key, which `undoReview` needs. */
