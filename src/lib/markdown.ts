@@ -2,6 +2,9 @@
 import DOMPurify from 'dompurify';
 import type { HLJSApi } from 'highlight.js';
 import { Marked } from 'marked';
+import { INLINE_MATH } from './parser';
+
+const INLINE_MATH_START = new RegExp(`^${INLINE_MATH}`);
 
 let katex: typeof import('katex').default | undefined;
 let hljs: HLJSApi | undefined;
@@ -73,8 +76,7 @@ const marked = new Marked({
       tokenizer(src) {
         const display = /^\$\$([^\n]+?)\$\$/.exec(src);
         if (display) return { type: 'inlineMath', raw: display[0], text: display[1]!.trim(), display: true };
-        // Pandoc's rule, so "$5 and $10" stays text: no space inside the dollars, no digit after.
-        const m = /^\$(?!\s)((?:\\.|[^\\\n$])+?)(?<!\s)\$(?!\d)/.exec(src);
+        const m = INLINE_MATH_START.exec(src);
         if (m) return { type: 'inlineMath', raw: m[0], text: m[1]!, display: false };
       },
       renderer: (token) => math(token.text, token.display),

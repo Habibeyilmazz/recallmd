@@ -66,7 +66,7 @@ Card syntax inside code fences, inline code, inline math and one-line HTML comme
 - **Progress survives edits.** A card's identity is a hash of its question, not its file, position or answer. Fix an answer, move or rename the note, and the card keeps its schedule. If you reword a question but keep its answer, re-importing matches the old card to the new one by similarity and carries the progress over. (Change both and it is treated as a new card.)
 - **FSRS scheduling** (via [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs)) with Again / Hard / Good / Easy. Each button shows when the card would come back. Desired retention is adjustable (70–97%).
 - **Keyboard-first review.** `Space` or `Enter` shows the answer, `1`–`4` rate it, `Space` again means Good, `Z` undoes the last answer, `Esc` goes back to the decks.
-- **Daily goal, streak and stats**: reviews per day for the last 30 days, cards coming due over the next 14, true retention, and how many cards are new, learning and in review.
+- **Daily goal, streak and stats**: reviews per day for the last 30 days, cards coming due over the next 14, true retention, and how many cards are new, learning and in review. Each chart can also be read as a table.
 - **Offline PWA.** After the first visit to a production build the app, fonts, KaTeX and the code highlighter are all cached; it can be installed and used without a connection.
 - **Your data is yours.** Cards, schedule and history are stored in IndexedDB in your browser. Settings → Export progress writes one JSON file; importing it on another browser or device restores everything.
 - Light and dark themes following the system setting, and a layout that works on a phone.
@@ -105,6 +105,7 @@ CI runs all four on every push. `.github/workflows/deploy.yml` builds and publis
 ## Limits worth knowing
 
 - There is no sync. Data lives in one browser profile; use Export progress to back it up or move it.
+- Study in one tab at a time. A tab picks up changes made elsewhere when you switch back to it, but two tabs reviewing side by side can overwrite each other's scheduling.
 - The browser cannot watch your files. After editing notes, import them again (the preview shows what changed).
 - Only text is imported. Local images and Obsidian `![[embeds]]` are shown as a name, not the file. Images linked by `http(s)` URL are loaded from their server when the card is shown.
 - Picking or dropping a folder depends on browser support; on most phones you can only pick files or paste text.

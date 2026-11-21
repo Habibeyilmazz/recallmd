@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { Component, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { inDeck } from './lib/stats';
 import { useStore } from './store';
 import { Home } from './views/Home';
@@ -31,6 +31,31 @@ export function useNow(): number {
     };
   }, []);
   return now;
+}
+
+/** A crash in one screen should not leave a blank page: say what happened and offer a way out. */
+class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return (
+      <section role="alert">
+        <h1>This screen ran into a problem</h1>
+        <p>Your cards and review history are stored safely and were not changed by this.</p>
+        <div className="actions">
+          <button className="button primary" onClick={() => location.reload()}>
+            Reload recallmd
+          </button>
+          <a className="button" href="#/settings" onClick={() => this.setState({ failed: false })}>
+            Open Settings to export your data
+          </a>
+        </div>
+      </section>
+    );
+  }
 }
 
 const NAV = [
@@ -80,7 +105,10 @@ export function App() {
           Something could not be saved: {error} <button onClick={clearError}>Dismiss</button>
         </p>
       )}
-      <main className="page">{page}</main>
+      <main className="page">
+        {/* Keyed by route: leaving the broken screen clears the error. */}
+        <Boundary key={route.path}>{page}</Boundary>
+      </main>
     </>
   );
 }

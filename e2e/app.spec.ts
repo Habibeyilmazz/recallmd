@@ -38,9 +38,12 @@ test('review with the keyboard: reveal, rate, undo', async ({ page }) => {
   await expect(card).not.toContainText('Two colons');
   await expect(page.getByText('10 to go')).toBeVisible();
 
-  await page.keyboard.press('Space');
+  await page.keyboard.down('Space');
+  await page.keyboard.down('Space'); // held down: the auto-repeat must not rate the card
+  await page.keyboard.up('Space');
   await expect(card).toContainText('Two colons');
   await expect(page.getByRole('button', { name: /Again/ })).toBeVisible();
+  await expect(page.getByText('10 to go')).toBeVisible();
 
   await page.keyboard.press('4'); // Easy: gone until another day
   await expect(card).toContainText('Which key shows the answer');
@@ -216,6 +219,9 @@ test('scheduling: an Easy card leaves today and comes back when due', async ({ p
   await expect(page.getByRole('article', { name: 'Flashcard' })).toContainText('Only question');
   await page.goto('/#/stats');
   await expect(page.getByText('Longest: 1')).toBeVisible();
+  // The chart's numbers are also available as a table.
+  await page.getByText('Show the numbers').first().click();
+  await expect(page.getByRole('row', { name: 'Jan 10 1' })).toBeVisible();
 });
 
 test('export, erase and restore progress', async ({ page }) => {

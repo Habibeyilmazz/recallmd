@@ -67,10 +67,19 @@ export function cardId(kind: CardKind, question: string): string {
   return hash(`${kind}\n${normalize(question)}`);
 }
 
+/**
+ * Inline math, by Pandoc's rule: no space just inside the dollars and no digit after the
+ * closing one, so "$5 and $10" is money. The renderer uses the same pattern, so what is
+ * hidden from the parser is exactly what gets rendered as math.
+ */
+export const INLINE_MATH = String.raw`\$(?!\s)((?:\\.|[^\\\n$])+?)(?<!\s)\$(?!\d)`;
+
+// A code span closes on a backtick run of the same length, so ``a ` b`` is one span.
+const INERT = new RegExp(String.raw`(\`+)[^\n]*?[^\`\n]\1(?!\`)|\$\$[^\n]+?\$\$|${INLINE_MATH}`, 'g');
+
 /** Blank out inline code and inline math so card syntax inside them is ignored. Length is preserved. */
 function mask(line: string): string {
-  // A code span closes on a backtick run of the same length, so ``a ` b`` is one span.
-  return line.replace(/(`+)[^\n]*?[^`\n]\1(?!`)|\$[^$\n]+\$/g, (m) => '\0'.repeat(m.length));
+  return line.replace(INERT, (m) => '\0'.repeat(m.length));
 }
 
 /** Index of the first " :: " separator outside code and math, or -1. */

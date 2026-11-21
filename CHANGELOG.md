@@ -25,6 +25,7 @@ First release.
 - Commands: `npm run dev` (port 4130), `npm run typecheck`, `npm test`, `npm run build`, `npm run preview` (port 4131), `npm run e2e` (needs a build first).
 - All logic lives in `src/lib/` as pure functions with tests next to them; `src/views/` is thin. Start with `parser.ts` and `scheduler.ts`.
 - `Card.seq` exists because IndexedDB returns cards in id order; `byNote` restores note order after loading.
+- A second-opinion review (Codex) found eleven issues before release; all were fixed except true multi-tab safety, which is mitigated (a tab reloads its data when it becomes visible) and listed under Limits in the README. Doing it properly means reading, scheduling and writing inside one IndexedDB transaction.
 - `db.ts` calls `tx.commit()` on purpose: without it an answer given just before a reload was lost. `e2e/app.spec.ts` has the regression test.
 - The Content-Security-Policy is injected by a small plugin in `vite.config.ts`, for builds only.
 - Screenshots: `npm run build && npm run preview`, then `node scripts/screenshots.mjs`. Icons: `node scripts/make-icons.mjs` after editing `public/icon.svg`.

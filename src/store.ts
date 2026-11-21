@@ -43,6 +43,15 @@ export function useStore(): { store?: Store; error?: string; clearError: () => v
     })().catch(fail);
   }, [fail, reload]);
 
+  // Another tab may have studied or imported in the meantime: pick that up on the way back in.
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === 'visible') reload().catch(fail);
+    };
+    document.addEventListener('visibilitychange', refresh);
+    return () => document.removeEventListener('visibilitychange', refresh);
+  }, [fail, reload]);
+
   if (!data) return { error, clearError: () => setError(undefined) };
 
   const store: Store = {
@@ -60,19 +69,25 @@ export function useStore(): { store?: Store; error?: string; clearError: () => v
       const next = schedule(previous, rating, now, data.settings.retention);
       const log = { id, t: now, rating, state: previous?.state ?? NEW };
       setData((d) => d && { ...d, states: new Map(d.states).set(id, next), logs: [...d.logs, log] });
+      const forget = () =>
+        setData((d) => {
+          if (!d) return d;
+          const states = new Map(d.states);
+          if (previous) states.set(id, previous);
+          else states.delete(id);
+          return { ...d, states, logs: d.logs.filter((l) => l !== log) };
+        });
       const saved = db.saveReview(next, log);
-      saved.catch(fail);
+      // An answer that could not be stored must not look stored: take it back and say so.
+      saved.catch((e: unknown) => {
+        forget();
+        fail(e);
+      });
       return {
         next,
         undo() {
-          setData((d) => {
-            if (!d) return d;
-            const states = new Map(d.states);
-            if (previous) states.set(id, previous);
-            else states.delete(id);
-            return { ...d, states, logs: d.logs.filter((l) => l !== log) };
-          });
-          saved.then((key) => db.undoReview(id, previous, key)).catch(fail);
+          forget();
+          saved.then((key) => db.undoReview(id, previous, key)).catch(() => undefined); // a failed save was already reported
         },
       };
     },

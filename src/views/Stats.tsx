@@ -4,15 +4,16 @@ import { countCards, forecast, retention, reviewsPerDay, reviewsToday, shiftDay,
 
 const dayLabel = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
-/** A plain bar chart. `dates[i]` is the day of `values[i]`; one bar may be marked as today. */
+/** A plain bar chart. `dates[i]` is the day of `values[i]`; `unit` is singular; one bar is marked as today. */
 function Bars({ values, dates, today, unit, label }: { values: number[]; dates: number[]; today: number; unit: string; label: string }) {
   const max = Math.max(1, ...values);
   const total = values.reduce((a, b) => a + b, 0);
+  const count = (n: number) => `${n} ${n === 1 ? unit : `${unit}s`}`;
   return (
     <figure className="chart">
-      <div className="bars" role="img" aria-label={`${label}: ${total} ${unit} in total, at most ${max === 1 && total === 0 ? 0 : max} on one day.`}>
+      <div className="bars" role="img" aria-label={`${label}: ${count(total)} in total, at most ${total ? max : 0} on one day. The numbers are in the table below.`}>
         {values.map((v, i) => (
-          <div key={i} className={`col ${i === today ? 'now' : ''}`} title={`${dayLabel(dates[i]!)}: ${v} ${unit}`}>
+          <div key={i} className={`col ${i === today ? 'now' : ''}`} title={`${dayLabel(dates[i]!)}: ${count(v)}`}>
             <div className="fill" style={{ height: `${(v / max) * 100}%` }} />
           </div>
         ))}
@@ -20,10 +21,34 @@ function Bars({ values, dates, today, unit, label }: { values: number[]; dates: 
       <figcaption className="muted">
         <span>{dayLabel(dates[0]!)}</span>
         <span>
-          {total} {unit}, peak {total ? max : 0} a day
+          {count(total)}, peak {total ? max : 0} a day
         </span>
         <span>{dayLabel(dates[dates.length - 1]!)}</span>
       </figcaption>
+      {/* The same numbers as text: for screen readers, and for anyone who wants exact values. */}
+      <details>
+        <summary>Show the numbers</summary>
+        {total ? (
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Day</th>
+                <th scope="col">{unit}s</th>
+              </tr>
+            </thead>
+            <tbody>
+              {values.map((v, i) => v > 0 && (
+                <tr key={i}>
+                  <th scope="row">{dayLabel(dates[i]!)}</th>
+                  <td>{v}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="muted">Nothing yet.</p>
+        )}
+      </details>
     </figure>
   );
 }
@@ -68,7 +93,7 @@ export function Stats({ data }: { data: AppData }) {
       <h2>Reviews, last {PAST} days</h2>
       <Bars
         label={`Reviews per day over the last ${PAST} days`}
-        unit="reviews"
+        unit="review"
         values={reviewsPerDay(logs, now, PAST)}
         dates={Array.from({ length: PAST }, (_, i) => shiftDay(now, PAST - 1 - i))}
         today={PAST - 1}
@@ -77,7 +102,7 @@ export function Stats({ data }: { data: AppData }) {
       <h2>Coming due, next {AHEAD} days</h2>
       <Bars
         label={`Cards coming due per day over the next ${AHEAD} days, overdue cards counted today`}
-        unit="cards"
+        unit="card"
         values={forecast(cards, states, now, AHEAD)}
         dates={Array.from({ length: AHEAD }, (_, i) => shiftDay(now, -i))}
         today={0}

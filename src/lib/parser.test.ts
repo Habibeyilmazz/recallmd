@@ -40,6 +40,12 @@ describe('one-line cards', () => {
     expect(pairs('```html\n<!-- kept -->\n```\nQ: q\nA: `x` <!-- gone -->')).toEqual([['q', '`x`']]);
   });
 
+  it('does not mistake money for math', () => {
+    expect(pairs('Prices $5 :: $10')).toEqual([['Prices $5', '$10']]);
+    expect(pairs('Cost in $ :: Around $5 or $10')).toEqual([['Cost in $', 'Around $5 or $10']]);
+    expect(pairs('Display $$a :: b$$ only')).toEqual([]);
+  });
+
   it('keeps later separators in the answer', () => {
     expect(pairs('q :: a :: b')).toEqual([['q', 'a :: b']]);
   });

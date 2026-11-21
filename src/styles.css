@@ -656,6 +656,28 @@ mark {
   font-size: 0.8125rem;
   font-variant-numeric: tabular-nums;
 }
+.chart details {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+.chart table {
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+  font-variant-numeric: tabular-nums;
+}
+.chart th,
+.chart td {
+  text-align: left;
+  font-weight: 400;
+  padding: 0.125rem 1.5rem 0.125rem 0;
+}
+.chart thead th {
+  color: var(--muted);
+  text-transform: capitalize;
+}
+.chart td {
+  text-align: right;
+}
 .stack {
   display: flex;
   gap: 2px;

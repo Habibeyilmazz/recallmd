@@ -67,7 +67,8 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
     const onKey = (e: KeyboardEvent) => {
       const k = keys.current;
       const target = e.target as HTMLElement;
-      if (e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+      // e.repeat: holding Space must not answer card after card.
+      if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
       // flushSync: render before the next key arrives, so fast typing never acts on a stale card.
       flushSync(() => {
         if (e.key === 'Escape') {
