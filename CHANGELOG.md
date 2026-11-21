@@ -5,7 +5,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-Two rounds of changes. The first was an independent first-run review: a fresh clone, the README quickstart followed literally, and a read of the whole codebase. The second was a design and accessibility pass: every screen looked at in screenshots of the running app at 1180px, 390px and 320px, light and dark, and walked with the keyboard.
+Three rounds of changes. The first was an independent first-run review: a fresh clone, the README quickstart followed literally, and a read of the whole codebase. The second was a design and accessibility pass: every screen looked at in screenshots of the running app at 1180px, 390px and 320px, light and dark, and walked with the keyboard. The third was a second design pass that re-shot every screen and state (done, empty, dialogs) and found the two issues listed first under Fixed; README screenshots were regenerated and showed no visible change, so they were left as they were.
 
 ### Added
 
@@ -15,6 +15,8 @@ Two rounds of changes. The first was an independent first-run review: a fresh cl
 
 ### Fixed
 
+- Pressing "Show answer", a rating or "Undo last answer" with the keyboard removed the focused button and dropped the focus to the page body, so a screen reader lost its place. The button that takes its place (Good, Show answer, or Back to decks when the session ends) now gets the focus.
+- On a touch screen the add-notes box asked you to drop files on the page; it now says to pick files or paste them in.
 - Importing notes, removing a deck, erasing everything and adding the sample deck ignored a write that the browser refused (a full disk, for example): nothing changed and nothing was said. They now show the same "Something could not be saved" message as a failed answer, and that message stays in view while the page scrolls.
 - A card with a wide table or a long URL widened the whole page on a phone. Long words now break and a table scrolls sideways inside the card.
 - A card answered in one tab could come up again in a review session that was already open in another tab.
