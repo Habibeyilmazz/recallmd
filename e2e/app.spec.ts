@@ -173,6 +173,24 @@ test('note HTML cannot draw over the app outside its card', async ({ page }) => 
   await expect(page.getByRole('button', { name: /^Easy/ })).toBeHidden();
 });
 
+test('the build sets a script-blocking policy, and images in notes are fetched without a referrer', async ({ page }) => {
+  await open(page);
+  const policy = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content');
+  expect(policy).toContain("script-src 'self'");
+  expect(policy).toContain("object-src 'none'");
+  let referer: string | undefined = 'not requested';
+  await page.route('https://img.example.test/**', (route) => {
+    referer = route.request().headers()['referer'];
+    return route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>' });
+  });
+  const dialog = await importFiles(page, [md('image.md', 'Image check :: ![pixel](https://img.example.test/p.svg)')]);
+  await dialog.getByRole('button', { name: /^Import/ }).click();
+  const card = await study(page, /^image/);
+  await page.keyboard.press('Space');
+  await expect(card.locator('img')).toBeVisible();
+  expect(referer).toBeUndefined();
+});
+
 test('importing a folder builds decks from folders and tags, and skips non-notes', async ({ page }) => {
   await open(page);
   await page.getByTestId('folder').setInputFiles(VAULT);
