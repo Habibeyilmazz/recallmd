@@ -7,7 +7,7 @@ Drop in files or a whole Obsidian vault, review with the keyboard, and let FSRS 
 
 ## Quickstart
 
-You need Node.js 22 (20.19 or newer also works) and npm.
+You need Node.js 22.12 or newer and npm.
 
 ```sh
 git clone https://github.com/Habibeyilmazz/recallmd.git
