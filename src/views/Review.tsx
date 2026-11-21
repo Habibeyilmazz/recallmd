@@ -30,6 +30,18 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
   const [revealedId, setRevealedId] = useState<string>();
   const undo = useRef<{ session: typeof session; run: () => void } | undefined>(undefined);
   const [canUndo, setCanUndo] = useState(false);
+  // A pressed button that the next render removes would drop focus to <body>; this hands it to the button that replaces it.
+  const view = useRef<HTMLDivElement>(null);
+  const refocus = useRef(false);
+  useLayoutEffect(() => {
+    if (!refocus.current) return;
+    refocus.current = false;
+    view.current?.querySelector<HTMLElement>('.show, .r3, .done .primary')?.focus();
+  });
+  const press = (action: () => void) => () => {
+    refocus.current = true;
+    action();
+  };
 
   // Another tab may have answered or removed some of this session's cards since it started.
   const queue = syncQueue(session.queue, states, (id) => byId.has(id), Date.now());
@@ -111,7 +123,7 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
 
   if (!card) {
     return (
-      <div className="review">
+      <div className="review" ref={view}>
         {head}
         <section className="sheet done">
           <h2>{session.answered ? 'Done for today' : cards.length ? 'Nothing is due right now' : 'This deck has no cards'}</h2>
@@ -124,11 +136,11 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
               Back to decks
             </a>
             {newLeft > 0 && (
-              <button onClick={learnMore}>
+              <button onClick={press(learnMore)}>
                 Learn {Math.min(MORE, newLeft)} more new {Math.min(MORE, newLeft) === 1 ? 'card' : 'cards'}
               </button>
             )}
-            {canUndo && <button onClick={takeBack}>Undo last answer</button>}
+            {canUndo && <button onClick={press(takeBack)}>Undo last answer</button>}
           </div>
         </section>
       </div>
@@ -137,7 +149,7 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
 
   const intervals = revealed ? previewIntervals(states.get(card.id), Date.now(), settings.retention) : undefined;
   return (
-    <div className="review">
+    <div className="review" ref={view}>
       {head}
       <article className="sheet card" aria-label="Flashcard">
         {/* A cloze answer is the same sentence with the gap filled, so it replaces the question. */}
@@ -161,7 +173,7 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
           <div className="ratings" role="group" aria-label="How well did you remember?">
             {RATINGS.map(({ rating, label }) => (
               // The key is a hint for the eye; assistive tech gets it as a shortcut, not as part of the name.
-              <button key={rating} className={`rating r${rating}`} onClick={() => rate(rating)} aria-keyshortcuts={String(rating)}>
+              <button key={rating} className={`rating r${rating}`} onClick={press(() => rate(rating))} aria-keyshortcuts={String(rating)}>
                 <span className="label">{label}</span>
                 <span className="when">{formatInterval(intervals[rating])}</span>
                 <kbd aria-hidden="true">{rating}</kbd>
@@ -170,7 +182,7 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
           </div>
         ) : (
           <div className="ratings">
-            <button className="button primary show" onClick={reveal} aria-keyshortcuts="Space">
+            <button className="button primary show" onClick={press(reveal)} aria-keyshortcuts="Space">
               Show answer <kbd aria-hidden="true">Space</kbd>
             </button>
           </div>
@@ -186,7 +198,7 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
             <kbd>Esc</kbd> Back to decks
           </span>
           {canUndo && (
-            <button className="link" onClick={takeBack} aria-keyshortcuts="Z">
+            <button className="link" onClick={press(takeBack)} aria-keyshortcuts="Z">
               <kbd className="keys" aria-hidden="true">Z</kbd> Undo last answer
             </button>
           )}

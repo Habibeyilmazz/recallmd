@@ -63,6 +63,17 @@ test('review with the keyboard: reveal, rate, undo', async ({ page }) => {
   await expect(page.getByText('1 of 20 reviews')).toBeVisible();
 });
 
+test('a pressed review button hands the focus on instead of dropping it', async ({ page }) => {
+  await open(page);
+  await study(page, 'Study now');
+  await page.getByRole('button', { name: /Show answer/ }).press('Enter');
+  await expect(page.getByRole('button', { name: /Good/ })).toBeFocused();
+  await page.getByRole('button', { name: /Again/ }).press('Enter');
+  await expect(page.getByRole('button', { name: /Show answer/ })).toBeFocused();
+  await page.getByRole('button', { name: /Undo last answer/ }).press('Enter');
+  await expect(page.getByRole('button', { name: /Show answer/ })).toBeFocused();
+});
+
 test('an answer given just before the page is reloaded is not lost', async ({ page }) => {
   await open(page);
   await page.reload(); // now served by the service worker, so the next load is fast
