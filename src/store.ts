@@ -8,7 +8,7 @@ import sampleText from './sample/learn-recallmd.md?raw';
 
 export const SAMPLE: NoteFile = { path: 'Learn recallmd in 2 minutes.md', text: sampleText };
 
-export interface Answered {
+interface Answered {
   next: CardState;
   /** Takes the answer back: at once in memory, and in storage as soon as the answer itself is saved. */
   undo: () => void;

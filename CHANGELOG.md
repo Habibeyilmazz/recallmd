@@ -5,6 +5,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Measured
+
+- Performance and accessibility pass (nothing worth changing was found). Production build, Chromium, preview server: first paint 68 ms, 426 KB transferred on first load with fonts (index JS 120 KB gzipped; KaTeX and highlight.js already load only for cards that need them). A 5000-card import across 50 notes: preview 95 ms, saved in under 100 ms; Decks, Cards and Stats render in under 10 ms with 5000 cards stored (the Cards page lists 100). axe-core 4.10 reports no violations on Decks, Cards, Stats, Settings, the import preview and a review card, light and dark. knip finds no unused dependencies or exports besides one needlessly exported type, now unexported. Not done: no screen reader was run, Firefox and Safari are untested, and the Obsidian `#flashcards` tags and end marker are still on the roadmap (features, not bugs).
+
 ### Added
 
 - Cards written for the Obsidian Spaced Repetition plugin are read: `Question ::: Answer` makes a card each way, and a line of `?` between a paragraph and its answer makes a multi-line card (`??` for both ways). The answer runs to the next blank line outside a code fence, like a `Q:`/`A:` answer. Turning a `::` card into `:::` keeps its progress. The plugin's `#flashcards` deck tags and its optional end-of-card marker are not read (roadmap). Parser unit tests and an end-to-end test cover it; in-app help and README list the syntax.
