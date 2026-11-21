@@ -49,7 +49,7 @@ class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
           <button className="button primary" onClick={() => location.reload()}>
             Reload recallmd
           </button>
-          <a className="button" href="#/settings" onClick={() => this.setState({ failed: false })}>
+          <a className="button" href="#/settings">
             Open Settings to export your data
           </a>
         </div>
