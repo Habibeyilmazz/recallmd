@@ -5,7 +5,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-Three rounds of changes. The first was an independent first-run review: a fresh clone, the README quickstart followed literally, and a read of the whole codebase. The second was a design and accessibility pass: every screen looked at in screenshots of the running app at 1180px, 390px and 320px, light and dark, and walked with the keyboard. The third was a second design pass that re-shot every screen and state (done, empty, dialogs) and found the two issues listed first under Fixed; README screenshots were regenerated and showed no visible change, so they were left as they were.
+Four rounds of changes. The fourth was a security pass (see "Security" below). The first was an independent first-run review: a fresh clone, the README quickstart followed literally, and a read of the whole codebase. The second was a design and accessibility pass: every screen looked at in screenshots of the running app at 1180px, 390px and 320px, light and dark, and walked with the keyboard. The third was a second design pass that re-shot every screen and state (done, empty, dialogs) and found the two issues listed first under Fixed; README screenshots were regenerated and showed no visible change, so they were left as they were.
+
+### Security
+
+- A note could carry HTML with inline styles (`position: fixed`) and draw a fake screen, a phishing link for example, over the whole app. Rendered Markdown is now `contain: paint`, so nothing in a note reaches outside its card. End-to-end test: "note HTML cannot draw over the app outside its card".
+- Images linked from notes were requested with the app's origin as `Referer`. The page now sets `<meta name="referrer" content="no-referrer">`. The same new end-to-end test also checks that the production build carries the Content-Security-Policy, which had no test before.
+- A note could hang or crash the tab: a line of unclosed `<!--` took minutes to import, a line of unclosed `![[a|` took seconds per card to render, and a long paragraph full of `==highlights==` needed gigabytes of card text (out of memory). Comments are now removed with a linear loop, wikilink names are limited to 500 characters, and a paragraph whose cloze cards would hold more than 2 million characters in all is skipped with a warning. Unit tests time each case.
+- GitHub Actions are pinned to full commit SHAs (version in a comment) and `actions/checkout` no longer leaves the token in the checkout.
 
 ### Added
 
@@ -73,4 +80,6 @@ First release.
 - The Content-Security-Policy is injected by a small plugin in `vite.config.ts`, for builds only.
 - Screenshots: `npm run build && npm run preview`, then `node scripts/screenshots.mjs`. Icons: `node scripts/make-icons.mjs` after editing `public/icon.svg`.
 - GitHub Pages is not enabled. The deploy workflow only runs from the Actions tab.
+- Security pass (round four), what was checked and found fine: DOMPurify blocks `javascript:` links, event handlers and scripts (e2e test); KaTeX runs with `trust: false` and its default `maxExpand`; backup import validates every field and caps files at 100 MB; dropped folders skip dot-folders and cap file size and count; `npm audit` reports nothing; no secrets in git history; both workflows have `contents: read` at the top and only the deploy job gets `pages: write`. Not fixed: marked itself is slow on a very long line of `_a_a_a…` (about 1.4 s for 40 KB), which is upstream.
+- The action SHAs in `.github/workflows/` were looked up with `gh api repos/<owner>/<action>/commits/<tag>`; update them the same way.
 - Not done yet: see the Roadmap in the README.

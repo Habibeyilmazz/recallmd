@@ -87,7 +87,7 @@ The screenshots are taken from the running app by `scripts/screenshots.mjs`, whi
 - `src/lib/scheduler.ts` wraps ts-fsrs and builds the day's queue: cards in a learning step first, then reviews due before local midnight, then new cards up to the daily allowance. A card answered Again comes back in the same session.
 - `src/lib/stats.ts` computes streak, retention, forecast and deck counts from the review log.
 - `src/lib/db.ts` stores cards, FSRS state, the review log and settings in IndexedDB, and announces each write to other open tabs over a `BroadcastChannel`. Removing a deck keeps its progress, so importing the same notes later restores it.
-- `src/lib/markdown.ts` renders card Markdown with marked, sanitizes the HTML with DOMPurify, and loads KaTeX and highlight.js only when a card needs them. Production builds also ship a Content-Security-Policy that forbids inline and remote scripts.
+- `src/lib/markdown.ts` renders card Markdown with marked, sanitizes the HTML with DOMPurify, and loads KaTeX and highlight.js only when a card needs them. Production builds also ship a Content-Security-Policy that forbids inline and remote scripts, and rendered notes are paint-contained so their HTML cannot draw outside the card.
 - `src/views/` holds the four screens (Decks, Review, Stats, Settings). There is no router or state library: hash routes and one React hook (`src/store.ts`).
 
 ## Development
@@ -108,7 +108,8 @@ CI runs all four on every push. `.github/workflows/deploy.yml` builds and publis
 - There is no sync. Data lives in one browser profile; use Export progress to back it up or move it.
 - Several tabs share one set of data and tell each other about every change: a card you answer in one tab leaves a review session that is open in another. Cards that became due or were imported after a session started join it only when you start it again.
 - The browser cannot watch your files. After editing notes, import them again (the preview shows what changed).
-- Only text is imported. Local images and Obsidian `![[embeds]]` are shown as a name, not the file. Images linked by `http(s)` URL are loaded from their server when the card is shown.
+- A paragraph with so many highlights that its cloze cards would hold more than about 2 million characters in all is skipped with a warning; split it up.
+- Only text is imported. Local images and Obsidian `![[embeds]]` are shown as a name, not the file. Images linked by `http(s)` URL are loaded from their server when the card is shown (without a `Referer` header, but the server still sees your IP address).
 - Picking or dropping a folder depends on browser support; on most phones you can only pick files or paste text.
 - The automated browser tests run in Chromium only, and the design was checked there too. Firefox and Safari are untested.
 - A day ends at local midnight, and FSRS runs with its default parameters.
