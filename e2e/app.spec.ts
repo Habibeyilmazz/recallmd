@@ -234,6 +234,17 @@ test('note HTML cannot draw over the app outside its card', async ({ page }) => 
   await expect(page.getByRole('button', { name: /^Easy/ })).toBeHidden();
 });
 
+test('a link in a note cannot take the focus meant for the rating buttons', async ({ page }) => {
+  await open(page);
+  // Links dressed in the app's own button classes, in the question and in the answer.
+  const bait = (cls: string) => `<a class="${cls}" href="https://evil.example.test/">${cls}</a>`;
+  const dialog = await importFiles(page, [md('focus.md', `Focus check ${bait('show')} :: ${bait('r3')}`)]);
+  await dialog.getByRole('button', { name: /^Import/ }).click();
+  await study(page, /^focus/);
+  await page.getByRole('button', { name: /^Show answer/ }).click();
+  await expect(page.getByRole('button', { name: /^Good/ })).toBeFocused();
+});
+
 test('the build sets a script-blocking policy, and images in notes are fetched without a referrer', async ({ page }) => {
   await open(page);
   const policy = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content');

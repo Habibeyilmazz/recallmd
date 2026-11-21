@@ -40,7 +40,8 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
   useLayoutEffect(() => {
     if (!refocus.current) return;
     refocus.current = false;
-    view.current?.querySelector<HTMLElement>('.show, .r3, .done .primary')?.focus();
+    // Scoped to the app's own bars: a note's HTML can carry these class names too.
+    view.current?.querySelector<HTMLElement>('.answerbar .show, .answerbar .r3, .done .primary')?.focus();
   });
   const press = (action: () => void) => () => {
     refocus.current = true;
