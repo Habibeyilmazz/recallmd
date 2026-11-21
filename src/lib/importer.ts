@@ -52,15 +52,16 @@ const clozeAnswer = (c: Card) => /==(.+?)==/s.exec(c.back)?.[1] ?? '';
  * asked about something else.
  */
 export function rewordScore(old: Card, next: Card): number {
-  if (old.kind !== next.kind) return 0;
-  const sameAnswer =
-    old.kind === 'cloze'
-      ? normalize(clozeAnswer(old)) === normalize(clozeAnswer(next))
-      : normalize(old.back) === normalize(next.back);
-  if (!sameAnswer) return 0;
+  if (answerKey(old) !== answerKey(next)) return 0;
   const score = similarity(old.front, next.front);
   return score >= 0.6 ? score : 0;
 }
+
+/** Cards can only be the same card reworded if this matches. */
+const answerKey = (c: Card) => `${c.kind}\n${normalize(c.kind === 'cloze' ? clozeAnswer(c) : c.back)}`;
+
+/** Most question pairs one import compares; a note rewritten wholesale would otherwise freeze the tab. */
+const MAX_COMPARISONS = 200_000;
 
 export function planImport(
   existing: Card[],
@@ -102,14 +103,30 @@ export function planImport(
 
   // Reworded questions get a new id; hand the old card's progress to the closest new card.
   const pairs: { from: string; to: string; score: number }[] = [];
+  const byAnswer = new Map<string, Card[]>();
+  for (const next of fresh) {
+    if (hasProgress(next.id)) continue;
+    const key = answerKey(next);
+    const list = byAnswer.get(key);
+    if (list) list.push(next);
+    else byAnswer.set(key, [next]);
+  }
+  let budget = MAX_COMPARISONS;
+  let skipped = 0;
   for (const old of gone) {
     if (!hasProgress(old.id)) continue;
-    for (const next of fresh) {
-      if (hasProgress(next.id)) continue;
-      const score = rewordScore(old, next);
-      if (score > 0) pairs.push({ from: old.id, to: next.id, score });
+    const candidates = byAnswer.get(answerKey(old)) ?? [];
+    if (candidates.length > budget) {
+      skipped++;
+      continue;
+    }
+    budget -= candidates.length;
+    for (const next of candidates) {
+      const score = similarity(old.front, next.front);
+      if (score >= 0.6) pairs.push({ from: old.id, to: next.id, score });
     }
   }
+  if (skipped) warnings.push(`${skipped} reviewed cards were rewritten too much to match with their new wording; their progress is kept but not moved to the new cards.`);
   pairs.sort((a, b) => b.score - a.score);
   const moves: [string, string][] = [];
   const used = new Set<string>();

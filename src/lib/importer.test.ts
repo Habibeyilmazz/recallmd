@@ -124,4 +124,27 @@ describe('planImport', () => {
     const plan = planImport([], none, [{ path: 'a.md', text: '# Topic\nbody' }], { headings: true });
     expect(plan.upsert.map((c): Card['kind'] => c.kind)).toEqual(['heading']);
   });
+
+  describe('a big note rewritten at once', () => {
+    const lines = (word: string, answer: (i: number) => string) =>
+      Array.from({ length: 3000 }, (_, i) => `What ${word} item number ${i} of the list :: ${answer(i)}`).join('\n');
+
+    it('still carries progress over to reworded questions quickly', () => {
+      const old = cardsOf(lines('is', (i) => `answer ${i}`));
+      const ids = new Set(old.map((c) => c.id));
+      const t = performance.now();
+      const plan = planImport(old, (id) => ids.has(id), [{ path: 'a.md', text: lines('was', (i) => `answer ${i}`) }]);
+      expect(plan.moves).toHaveLength(3000);
+      expect(performance.now() - t).toBeLessThan(1000);
+    });
+
+    it('does not freeze when every answer is the same, and says what it left out', () => {
+      const old = cardsOf(lines('is', () => 'true'));
+      const ids = new Set(old.map((c) => c.id));
+      const t = performance.now();
+      const plan = planImport(old, (id) => ids.has(id), [{ path: 'a.md', text: lines('was', () => 'true') }]);
+      expect(performance.now() - t).toBeLessThan(3000);
+      expect(plan.warnings.some((w) => /progress/i.test(w))).toBe(true);
+    });
+  });
 });
