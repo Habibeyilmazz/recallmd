@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import sample from '../sample/learn-recallmd.md?raw';
 import { byNote, cardId, hash, normalize, parseMarkdown } from './parser';
@@ -256,5 +257,23 @@ describe('sample deck', () => {
       expect(c.front.trim()).not.toBe('');
       expect(c.back.trim()).not.toBe('');
     }
+  });
+});
+
+describe('README example', () => {
+  it('produces the cards the README says it does', () => {
+    const readme = readFileSync(new URL('../../README.md', import.meta.url), 'utf8');
+    const example = /````markdown\n([\s\S]+?)````/.exec(readme)![1]!;
+    const r = parseMarkdown(example, 'notes.md');
+    expect(r.warnings).toEqual([]);
+    expect(r.cards.map((c) => [c.kind, c.front])).toEqual([
+      ['basic', 'What is the powerhouse of the cell?'],
+      ['basic', 'What do ribosomes make?'],
+      ['cloze', 'Plant cells have a ==[…]== made of cellulose.'],
+      ['cloze', 'Plant cells have a cell wall made of ==[…]==.'],
+      ['basic', 'What does this print?'],
+    ]);
+    expect(r.cards[4]!.back).toContain('print(len([1, 2, 3]))');
+    expect(r.cards[0]).toMatchObject({ deck: 'Biology/Cells', tags: ['bio', 'exam'] });
   });
 });
