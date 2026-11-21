@@ -5,6 +5,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed (first-run review, round 9)
+
+A fresh clone of `main` was set up by following the README quickstart literally (`npm install`, `npm run dev`, then `npm run build`, `npm run preview` and `npm run e2e`). Everything worked: 177 unit tests and 23 end-to-end tests pass, the sample deck loads on first run and a keyboard review of it runs with no console errors. The code was then read through as a sceptical reviewer. Found and fixed:
+
+- A rating button could show one interval and give another: ts-fsrs seeds its fuzz with the review time, so pressing "Good 1.3y" a few seconds after the answer appeared could schedule the card 1.2y or 1.4y out. The fuzz is now seeded by the card id and its review count. Unit test: the interval shown is the one given for presses up to a minute later, and different cards still get different fuzz.
+- After "Erase everything" or "Import progress", the Daily goal and New cards a day fields on Settings kept showing the old numbers until you left the page (the stored values were right). The end-to-end backup test now checks the fields straight after both.
+- The import matched reworded questions with an inline copy of `rewordScore`'s rule; it now calls `rewordScore`, so the unit-tested function is the one that runs.
+
+Still not done: no screen reader run, Firefox and Safari untested, the Obsidian `#flashcards` tags and end marker are on the roadmap.
+
 ### Measured
 
 - Performance and accessibility pass (nothing worth changing was found). Production build, Chromium, preview server: first paint 68 ms, 426 KB transferred on first load with fonts (index JS 120 KB gzipped; KaTeX and highlight.js already load only for cards that need them). A 5000-card import across 50 notes: preview 95 ms, saved in under 100 ms; Decks, Cards and Stats render in under 10 ms with 5000 cards stored (the Cards page lists 100). axe-core 4.10 reports no violations on Decks, Cards, Stats, Settings, the import preview and a review card, light and dark. knip finds no unused dependencies or exports besides one needlessly exported type, now unexported. Not done: no screen reader was run, Firefox and Safari are untested, and the Obsidian `#flashcards` tags and end marker are still on the roadmap (features, not bugs).

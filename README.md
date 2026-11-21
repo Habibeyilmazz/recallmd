@@ -114,7 +114,7 @@ Use Anki if you need sync, media, add-ons or a tuned scheduler; it is far more m
 
 ```sh
 npm run typecheck   # tsc
-npm test            # unit tests (Vitest): parser, importer, scheduler, stats, card search, storage, backups
+npm test            # unit tests (Vitest): parser, importer, scheduler, stats, card search, Markdown rendering, storage, backups
 npm run build
 npm run e2e         # Playwright against the production build; run `npm run build` first
 ```
