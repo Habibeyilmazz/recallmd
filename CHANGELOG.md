@@ -5,6 +5,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Perf and accessibility re-check (round 16)
+
+Re-measured on the current `main`: 194 unit tests pass, build is clean (index JS 378 kB, 121.6 kB gzipped; KaTeX 77.7 kB gzipped loads only for math cards), CI green. Nothing worth changing was found, so nothing was changed. knip lists only five exported types used inside their own files. The reported gaps are unchanged limits, not bugs: images are not in the JSON export, no screen reader run, Firefox and Safari untested, the plugin's end marker and per-card deck tags are not read.
+
 ### Added (feature round 15)
 
 Chosen by importing a note written for the Obsidian Spaced Repetition plugin: its `#flashcards/science` tag, which is how that plugin files a note into a deck, was ignored, so a migrated vault lost its deck layout and fell back to folder names.
