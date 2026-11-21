@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from 'playwright/test';
 
 const VAULT = fileURLToPath(new URL('./fixtures/vault', import.meta.url));
+const IMAGES = fileURLToPath(new URL('./fixtures/images', import.meta.url));
 const md = (name: string, text: string) => ({ name, mimeType: 'text/markdown', buffer: Buffer.from(text) });
 
 async function open(page: Page) {
@@ -212,8 +213,8 @@ test('code and math render, and note HTML cannot run scripts', async ({ page }) 
   await expect(card.locator('script')).toHaveCount(0);
   await expect(card.getByText('link')).not.toHaveAttribute('href', /javascript/);
   expect(await page.evaluate(() => (window as { pwned?: number }).pwned)).toBeUndefined();
-  // Obsidian links show their label; files that were not imported are named, not shown broken.
-  await expect(card).toContainText('See the geometry note, [embed: diagram.png] and [image: local].');
+  // Obsidian links show their label; images that were not imported are named, not shown broken.
+  await expect(card).toContainText('See the geometry note, [image: diagram.png] and [image: local].');
 });
 
 test('note HTML cannot draw over the app outside its card', async ({ page }) => {
@@ -280,6 +281,40 @@ test('importing a folder builds decks from folders and tags, and skips non-notes
   await page.getByRole('link', { name: '#history' }).click();
   await expect(page.getByRole('article', { name: 'Flashcard' })).toContainText('Second World War');
   await expect(page.getByText('1 to go')).toBeVisible();
+});
+
+test('images in a folder show on the cards that link them', async ({ page }) => {
+  await open(page);
+  await page.getByTestId('folder').setInputFiles(IMAGES);
+  let dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading')).toHaveText('3 cards in 1 note');
+  await expect(dialog.getByRole('listitem').filter({ hasText: 'image' })).toHaveText('2 images shown on the cards');
+  await dialog.getByText('1 thing skipped').click();
+  await expect(dialog.getByRole('listitem').filter({ hasText: 'liver' })).toHaveText('images/biology/organs.md:9: image "liver.png" not found in what you added');
+  await dialog.getByRole('button', { name: 'Import 3 cards' }).click();
+  await expect(page.getByRole('status').first()).toHaveText('Imported 3 cards from 1 note and 2 images.');
+
+  // ![[cell.png|120]] from another folder of the vault, 120px wide.
+  const card = await study(page, /^images/);
+  const cell = card.getByRole('img');
+  await expect(cell).toHaveAttribute('width', '120');
+  expect(await cell.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth)).toBe(80);
+  await page.keyboard.press('Space');
+  await page.keyboard.press('3');
+  // ![alt](heart%20diagram.png) next to the note, in an answer.
+  await page.keyboard.press('Space');
+  const heart = card.getByRole('img', { name: 'The left ventricle' });
+  await expect(heart).toBeVisible();
+  expect(await heart.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(64);
+  await page.keyboard.press('3');
+  // An image that was not imported is named instead.
+  await page.keyboard.press('Space');
+  await expect(card).toContainText('[image: liver.png]');
+
+  // The note alone, re-imported, still finds the images stored the first time.
+  await page.keyboard.press('Escape');
+  dialog = await importFiles(page, [md('organs.md', await readFile(`${IMAGES}/biology/organs.md`, 'utf8'))]);
+  await expect(dialog.getByText('1 thing skipped')).toBeVisible();
 });
 
 test('dropping a folder on the page imports it', async ({ page }) => {

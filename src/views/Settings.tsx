@@ -56,7 +56,7 @@ export function Settings({ store }: { store: Store }) {
   };
 
   const eraseAll = async () => {
-    if (!confirm('Erase all cards, review history and settings from this browser? This cannot be undone. Export your progress first if you may want it back.')) return;
+    if (!confirm('Erase all cards, images, review history and settings from this browser? This cannot be undone. Export your progress first if you may want it back.')) return;
     if (!(await store.replaceAll())) return;
     setRestored((n) => n + 1);
     setStatus('Everything was erased.');
@@ -100,6 +100,7 @@ export function Settings({ store }: { store: Store }) {
       <h2>Your data</h2>
       <p className="muted">
         Cards and review history live only in this browser. Export them to back up or to move to another browser or device.
+        Images are not in the export: import the notes with their images again to bring them back.
       </p>
       <div className="actions">
         <button onClick={exportProgress}>Export progress</button>

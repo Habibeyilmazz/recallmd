@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNow } from '../App';
+import { imagePaths } from '../lib/db';
 import { readDropped, readPicked, type ReadResult } from '../lib/files';
 import { planImport } from '../lib/importer';
+import { neededImages } from '../lib/media';
 import { buildQueue, newSeenToday } from '../lib/scheduler';
 import { deckRows, inDeck, reviewsToday, streak } from '../lib/stats';
 import type { Store } from '../store';
@@ -97,15 +99,22 @@ export function Home({ store }: { store: Store }) {
 
 function AddNotes({ store }: { store: Store }) {
   const { cards, states, settings } = store.data;
-  const [pending, setPending] = useState<ReadResult>();
+  const [pending, setPending] = useState<ReadResult & { stored: string[] }>();
   const [pasting, setPasting] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [status, setStatus] = useState('');
   const filesInput = useRef<HTMLInputElement>(null);
   const folderInput = useRef<HTMLInputElement>(null);
 
-  const take = (reading: Promise<ReadResult>) =>
-    reading.then(setPending, (e: unknown) => setStatus(`Those files could not be read: ${e instanceof Error ? e.message : String(e)}`));
+  // The images already stored are looked up too, so a note re-imported without its images still finds them.
+  const preview = async (reading: ReadResult | Promise<ReadResult>) => {
+    try {
+      const read = await reading;
+      setPending({ ...read, stored: await imagePaths().catch(() => []) }); // unreadable storage: the import says why when it saves
+    } catch (e) {
+      setStatus(`Those files could not be read: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
 
   // Drop anywhere on the page.
   useEffect(() => {
@@ -122,7 +131,7 @@ function AddNotes({ store }: { store: Store }) {
       if (!hasFiles(e) || !e.dataTransfer) return;
       e.preventDefault();
       setDragging(false);
-      void take(readDropped(e.dataTransfer));
+      void preview(readDropped(e.dataTransfer));
     };
     addEventListener('dragover', over);
     addEventListener('dragleave', leave);
@@ -138,17 +147,21 @@ function AddNotes({ store }: { store: Store }) {
     () => pending && planImport(cards, (id) => states.has(id), pending.files, { headings: settings.headings }),
     [pending, cards, states, settings.headings],
   );
+  const images = useMemo(
+    () => pending && plan && neededImages(plan.upsert, pending.images.map((i) => i.path), pending.stored),
+    [pending, plan],
+  );
 
   const confirmImport = async () => {
-    if (!plan) return;
+    if (!plan || !pending || !images) return;
     const shown = pending;
-    const saved = await store.importNotes(plan);
+    const saved = await store.importNotes(plan, pending.images.filter((i) => images.save.includes(i.path)));
     // On failure the dialog still closes: the reason is on the page behind it.
     setStatus(
       !saved
         ? ''
         : plan.upsert.length
-          ? `Imported ${plural(plan.upsert.length, 'card')} from ${plural(plan.files, 'note')}.`
+          ? `Imported ${plural(plan.upsert.length, 'card')} from ${plural(plan.files, 'note')}${images.save.length ? ` and ${plural(images.save.length, 'image')}` : ''}.`
           : `Removed ${plural(plan.remove.length, 'card')}.`,
     );
     // Files picked while this was saving have opened a new preview; leave that one open.
@@ -156,7 +169,7 @@ function AddNotes({ store }: { store: Store }) {
   };
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.length) void take(readPicked(e.target.files));
+    if (e.target.files?.length) void preview(readPicked(e.target.files));
     e.target.value = ''; // so picking the same file again fires a change
   };
 
@@ -175,7 +188,7 @@ function AddNotes({ store }: { store: Store }) {
           <button onClick={() => folderInput.current?.click()}>Choose folder</button>
           <button onClick={() => setPasting(true)}>Paste text</button>
         </div>
-        <input ref={filesInput} type="file" multiple accept=".md,.markdown,.txt,text/markdown,text/plain" hidden onChange={onPick} data-testid="files" />
+        <input ref={filesInput} type="file" multiple accept=".md,.markdown,.txt,text/markdown,text/plain,image/*" hidden onChange={onPick} data-testid="files" />
         {/* webkitdirectory is not in React's types, but every current browser supports it. */}
         <input ref={folderInput} type="file" hidden onChange={onPick} data-testid="folder" {...{ webkitdirectory: '' }} />
       </div>
@@ -194,7 +207,8 @@ A: An answer that can hold code,
 lists and math, up to the next blank line`}</pre>
         <p className="muted">
           Folders and file names become decks; a <code>deck:</code> line in front matter overrides them. Tags come from
-          front matter and inline <code>#tags</code>.
+          front matter and inline <code>#tags</code>. Images such as <code>![[cell.png]]</code> show on the card when you add
+          them along with the note, in the same folder or the same pick.
         </p>
         <p className="muted">
           Cards written for the Obsidian Spaced Repetition plugin work too: <code>:::</code> makes a card both ways, and a
@@ -207,12 +221,12 @@ lists and math, up to the next blank line`}</pre>
           onClose={() => setPasting(false)}
           onSubmit={(file) => {
             setPasting(false);
-            setPending({ files: [file], skipped: [] });
+            void preview({ files: [file], images: [], skipped: [] });
           }}
         />
       )}
 
-      {pending && plan && (
+      {pending && plan && images && (
         <Modal
           title={plan.upsert.length ? `${plural(plan.upsert.length, 'card')} in ${plural(plan.files, 'note')}` : plan.remove.length ? 'No cards left in these notes' : 'No cards found'}
           onClose={() => setPending(undefined)}
@@ -229,6 +243,7 @@ lists and math, up to the next blank line`}</pre>
               {plan.remove.length > plan.moves.length && (
                 <li>{plan.remove.length - plan.moves.length} removed, no longer in these notes</li>
               )}
+              {images.save.length > 0 && <li>{plural(images.save.length, 'image')} shown on the cards</li>}
             </ul>
           ) : (
             <p>
@@ -241,11 +256,11 @@ lists and math, up to the next blank line`}</pre>
             <input type="checkbox" checked={settings.headings} onChange={(e) => store.updateSettings({ headings: e.target.checked })} />
             Also turn headings into questions, with the text under them as the answer
           </label>
-          {plan.warnings.length + pending.skipped.length > 0 && (
+          {plan.warnings.length + pending.skipped.length + images.missing.length > 0 && (
             <details>
-              <summary>{plural(plan.warnings.length + pending.skipped.length, 'thing')} skipped</summary>
+              <summary>{plural(plan.warnings.length + pending.skipped.length + images.missing.length, 'thing')} skipped</summary>
               <ul className="warnings">
-                {[...pending.skipped, ...plan.warnings].map((w) => (
+                {[...pending.skipped, ...plan.warnings, ...images.missing].map((w) => (
                   <li key={w}>{w}</li>
                 ))}
               </ul>

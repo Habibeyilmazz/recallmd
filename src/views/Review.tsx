@@ -171,12 +171,12 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
       {head}
       <article className="sheet card" aria-label="Flashcard">
         {/* A cloze answer is the same sentence with the gap filled, so it replaces the question. */}
-        {!(revealed && card.kind === 'cloze') && <Markdown text={card.front} />}
+        {!(revealed && card.kind === 'cloze') && <Markdown text={card.front} source={card.source} />}
         <div aria-live="polite">
           {revealed && (
             <div className={card.kind === 'cloze' ? undefined : 'answer'}>
               {card.kind !== 'cloze' && <hr />}
-              <Markdown text={card.back} />
+              <Markdown text={card.back} source={card.source} />
             </div>
           )}
         </div>

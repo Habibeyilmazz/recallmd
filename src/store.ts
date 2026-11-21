@@ -17,7 +17,7 @@ interface Answered {
 export interface Store {
   data: AppData;
   /** The three bulk writes resolve to false when storage refused them; the app then shows why. */
-  importNotes: (plan: ImportPlan) => Promise<boolean>;
+  importNotes: (plan: ImportPlan, images?: db.ImageFile[]) => Promise<boolean>;
   answer: (id: string, rating: Rating, now: number) => Answered;
   updateSettings: (patch: Partial<Settings>) => void;
   deleteCards: (ids: string[]) => Promise<boolean>;
@@ -74,7 +74,7 @@ export function useStore(): { store?: Store; error?: string; clearError: () => v
 
   const store: Store = {
     data,
-    importNotes: (plan) => written(db.applyImport(plan, data.states)),
+    importNotes: (plan, images) => written(db.applyImport(plan, data.states, images)),
     deleteCards: (ids) => written(db.deleteCards(ids)),
     replaceAll: (next) => written(db.replaceAll(next)),
     suspend(ids, on) {
