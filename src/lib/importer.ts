@@ -122,8 +122,8 @@ export function planImport(
     }
     budget -= candidates.length;
     for (const next of candidates) {
-      const score = similarity(old.front, next.front);
-      if (score >= 0.6) pairs.push({ from: old.id, to: next.id, score });
+      const score = rewordScore(old, next);
+      if (score) pairs.push({ from: old.id, to: next.id, score });
     }
   }
   if (skipped) warnings.push(`${skipped} reviewed cards were rewritten too much to match with their new wording; their progress is kept but not moved to the new cards.`);
