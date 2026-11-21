@@ -7,6 +7,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Launch pass: a real demo clip at the top of the README (`docs/demo.gif`, recorded from the running app by `scripts/demo.mjs`), a comparison with Anki and the Obsidian Spaced Repetition plugin that says when to use them instead, `CONTRIBUTING.md`, and bug and feature issue templates. Repo description and topics checked. Nothing in the app changed. Still not done: Firefox and Safari are untested (only Chromium is available to the agents), and there is no bulk suspend (on the roadmap).
 - A Cards page (`#/cards`, in the header): search every card by words from its question, answer, deck, note path or `#tag`, filter to due today, new or suspended, and see each card's status ("Due in 4d"). It lists the first 100 matches.
 - Suspending cards. Suspend or unsuspend from the Cards page, or press `S` (or "Suspend card") during a review; `Z` takes a suspend back like an answer. A suspended card keeps its progress, is left out of reviews, deck counts and the forecast, and stays suspended across re-imports. Stats shows how many are suspended, linking to them. Backups carry a `suspended` list; backups without one still load.
 

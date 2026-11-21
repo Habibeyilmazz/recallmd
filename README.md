@@ -3,7 +3,9 @@
 Turn the Markdown notes you already have into spaced-repetition flashcards, in the browser.
 Drop in files or a whole Obsidian vault, review with the keyboard, and let FSRS decide when you see each card again. No account, no server: everything stays in your browser and works offline.
 
-![The Decks page: cards to study today, the daily goal, and decks built from folders](docs/screenshots/decks.png)
+![A first-run review of the sample deck, by keyboard: show the answer, rate it, next card](docs/demo.gif)
+
+The clip is recorded from the running app by `scripts/demo.mjs`.
 
 ## Quickstart
 
@@ -73,6 +75,8 @@ Card syntax inside code fences, inline code, inline math and one-line HTML comme
 - Light and dark themes following the system setting, and a layout that works on a phone, with the answer buttons at the bottom of the screen.
 - **Built to be usable without a mouse or with low vision:** a skip button, visible focus everywhere, text at 4.5:1 contrast or better, 44px touch targets, and respect for the reduced-motion and forced-colours settings. This was checked in Chromium with scripts and the keyboard, not yet with a screen reader.
 
+![The Decks page: cards to study today, the daily goal, and decks built from folders](docs/screenshots/decks.png)
+
 ![A review: the answer with highlighted code, and the four rating buttons with their next intervals](docs/screenshots/review.png)
 
 | Stats | Import preview | Phone, dark |
@@ -80,6 +84,18 @@ Card syntax inside code fences, inline code, inline math and one-line HTML comme
 | ![Stats page](docs/screenshots/stats.png) | ![Import preview dialog](docs/screenshots/import.png) | ![Review on a phone in dark mode](docs/screenshots/review-phone-dark.png) |
 
 The screenshots are taken from the running app by `scripts/screenshots.mjs`, which imports the test vault in `e2e/fixtures/` and studies it over ten simulated days.
+
+## How it compares
+
+| | recallmd | Anki | Obsidian Spaced Repetition plugin |
+| --- | --- | --- | --- |
+| Where cards live | Your Markdown notes, imported into the browser | Anki's own collection | Your notes, inside Obsidian |
+| Scheduler | FSRS, default parameters | FSRS or SM-2, parameter optimizer | SM-2 variant |
+| Needs install or account | Neither (a web page) | Desktop app; AnkiWeb for sync | Obsidian |
+| Sync between devices | None; export and import a JSON file | AnkiWeb and mobile apps | Whatever syncs your vault |
+| Card types, add-ons, media | Three text syntaxes, no media import | Many note types, large add-on ecosystem, images and audio | Cloze, `::` and multi-line cards |
+
+Use Anki if you need sync, media, add-ons or a tuned scheduler; it is far more mature. Use the Obsidian plugin if you live inside Obsidian and want to review there. recallmd is for when you want to review any Markdown notes, from any editor, in a browser tab without installing anything. It reads the cards you already wrote; it does not edit your notes. This table is from the projects' public descriptions, so check their docs for the details.
 
 ## How it works
 
@@ -125,6 +141,10 @@ CI runs all four on every push. `.github/workflows/deploy.yml` builds and publis
 - Showing a card's rendered Markdown on the Cards page (it lists the plain text today)
 - Merging a backup into existing data instead of replacing it
 - Optimizing FSRS parameters from your own review history
+
+## Contributing
+
+Bug reports and small pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
