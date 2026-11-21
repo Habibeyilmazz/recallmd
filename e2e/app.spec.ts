@@ -324,6 +324,9 @@ test('on a small phone a wide table or a long URL stays inside the card, and the
   const context = await browser.newContext({ viewport: { width: 320, height: 568 }, isMobile: true, hasTouch: true });
   const page = await context.newPage();
   await open(page);
+  // Nothing to drag from on a phone, so the page does not ask for a drop.
+  await expect(page.getByText(/Drop Markdown files/)).toBeHidden();
+  await expect(page.getByText('Pick Markdown files or paste them in.')).toBeVisible();
   const table = '| Drug | Class | Mechanism of action | Half-life | Notes |\n|---|---|---|---|---|\n| Amiodarone | III | Blocks potassium channels | 58 days | Thyroid, lungs |';
   const dialog = await importFiles(page, [
     md('wide.md', `Where does https://example.com/a/really/long/url/that/does/not/break/anywhere/at/all/index.html point? :: Nowhere.\n\nQ: Which drug?\nA:\n${table}\n`),

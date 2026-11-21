@@ -163,8 +163,10 @@ function AddNotes({ store }: { store: Store }) {
       <h2 id="add-h">Add notes</h2>
       <div className={`drop ${dragging ? 'over' : ''}`}>
         <p>
-          Drop Markdown files or a whole folder anywhere on this page. An Obsidian vault works as it is. Nothing leaves your
-          browser.
+          {/* A touch screen has nothing to drag from, so it gets the second sentence. */}
+          <span className="drag">Drop Markdown files or a whole folder anywhere on this page. </span>
+          <span className="tap">Pick Markdown files or paste them in. </span>
+          An Obsidian vault works as it is. Nothing leaves your browser.
         </p>
         <div className="actions">
           <button onClick={() => filesInput.current?.click()}>Choose files</button>

@@ -858,6 +858,19 @@ mark {
   margin-right: 0.25rem;
 }
 
+/* Drag-and-drop wording only where there is a mouse to drag with. */
+.tap {
+  display: none;
+}
+@media (hover: none) {
+  .drag {
+    display: none;
+  }
+  .tap {
+    display: inline;
+  }
+}
+
 /* No keyboard here, so no key hints. */
 @media (hover: none), (max-width: 30rem) {
   .keys,
