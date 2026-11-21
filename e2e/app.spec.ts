@@ -309,6 +309,34 @@ test('a save the browser refuses is reported and not passed off as done', async 
   await expect(page.getByRole('alert')).toBeHidden();
 });
 
+test('on a small phone a wide table or a long URL stays inside the card, and the buttons stay in reach', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 320, height: 568 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  await open(page);
+  const table = '| Drug | Class | Mechanism of action | Half-life | Notes |\n|---|---|---|---|---|\n| Amiodarone | III | Blocks potassium channels | 58 days | Thyroid, lungs |';
+  const dialog = await importFiles(page, [
+    md('wide.md', `Where does https://example.com/a/really/long/url/that/does/not/break/anywhere/at/all/index.html point? :: Nowhere.\n\nQ: Which drug?\nA:\n${table}\n`),
+  ]);
+  await dialog.getByRole('button', { name: 'Import 2 cards' }).click();
+  await study(page, /^wide/);
+  // Not innerWidth: a phone zooms out to fit a page that is too wide, and innerWidth grows with it.
+  const pageWidth = () => page.evaluate(() => document.documentElement.scrollWidth);
+
+  await page.getByRole('button', { name: /Show answer/ }).tap();
+  expect(await pageWidth()).toBe(320);
+  await page.getByRole('button', { name: /Good/ }).tap();
+
+  await page.getByRole('button', { name: /Show answer/ }).tap();
+  const cell = page.getByRole('cell', { name: 'Amiodarone' });
+  await expect(cell).toBeVisible();
+  expect(await pageWidth()).toBe(320);
+  // The table keeps its words whole and scrolls sideways inside the card instead.
+  expect(await page.locator('.md table').evaluate((t) => t.scrollWidth > t.clientWidth)).toBe(true);
+  await page.getByRole('button', { name: /Good/ }).tap();
+  await expect(page.getByText('2 to go')).toBeVisible(); // both come back within minutes: still in the session
+  await context.close();
+});
+
 test('works offline after the first visit', async ({ page, context }) => {
   await open(page);
   await page.evaluate(() => navigator.serviceWorker.ready);

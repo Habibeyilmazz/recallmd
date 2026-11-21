@@ -503,6 +503,9 @@ input[type='checkbox'] {
 }
 
 /* Rendered note Markdown */
+.md {
+  overflow-wrap: anywhere; /* a long URL breaks instead of widening the page */
+}
 .md > :first-child {
   margin-top: 0;
 }
@@ -540,6 +543,12 @@ input[type='checkbox'] {
   color: var(--muted);
 }
 .md table {
+  /* A block that scrolls sideways by itself: a wide table must not widen the page. */
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-wrap: normal;
   border-collapse: collapse;
   font-size: 1rem;
 }
