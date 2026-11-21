@@ -1,4 +1,4 @@
-import { Component, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { Component, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { inDeck } from './lib/stats';
 import { useStore } from './store';
 import { Home } from './views/Home';
@@ -67,10 +67,35 @@ const NAV = [
 export function App() {
   const { store, error, clearError } = useStore();
   const route = useRoute();
+  const main = useRef<HTMLElement>(null);
+
+  // A route change is a new page: name it in the tab title and move focus to its content,
+  // so a screen reader starts reading there and Tab continues from there.
+  const shown = useRef(route.path);
+  useEffect(() => {
+    const label = route.path === 'review' ? 'Review' : (NAV.find(([path]) => path === route.path)?.[1] ?? 'Decks');
+    document.title = `${label} | recallmd`;
+    if (shown.current !== route.path) main.current?.focus();
+    shown.current = route.path;
+  }, [route.path]);
 
   let page;
   if (!store) {
-    page = <p className="muted">{error ? 'recallmd could not open its storage in this browser.' : 'Loading…'}</p>;
+    page = error ? (
+      <section role="alert">
+        <h1>recallmd could not open its storage</h1>
+        <p>Cards and progress are kept in this browser's IndexedDB, which is unavailable here. Private windows and strict privacy settings can block it.</p>
+        <div className="actions">
+          <button className="button primary" onClick={() => location.reload()}>
+            Try again
+          </button>
+        </div>
+      </section>
+    ) : (
+      <p className="muted" role="status">
+        Loading your cards…
+      </p>
+    );
   } else if (route.path === 'review') {
     const deck = route.params.get('deck');
     const tag = route.params.get('tag');
@@ -87,10 +112,14 @@ export function App() {
 
   return (
     <>
+      {/* A button, not a link: "#main" would be read as a route. */}
+      <button className="skip" onClick={() => main.current?.focus()}>
+        Skip to content
+      </button>
       <header className="top">
         <a className="brand" href="#/">
           <img src="./icon.svg" alt="" width="26" height="26" />
-          recallmd
+          <span>recallmd</span>
         </a>
         <nav aria-label="Main">
           {NAV.map(([path, label]) => (
@@ -100,12 +129,13 @@ export function App() {
           ))}
         </nav>
       </header>
-      {error && (
+      {error && store && (
         <p className="error" role="alert">
-          Something could not be saved: {error} <button onClick={clearError}>Dismiss</button>
+          <span>Something could not be saved: {error}</span>
+          <button onClick={clearError}>Dismiss</button>
         </p>
       )}
-      <main className="page">
+      <main className="page" ref={main} tabIndex={-1}>
         {/* Keyed by route: leaving the broken screen clears the error. */}
         <Boundary key={route.path}>{page}</Boundary>
       </main>

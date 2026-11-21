@@ -111,7 +111,7 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
 
   if (!card) {
     return (
-      <>
+      <div className="review">
         {head}
         <section className="sheet done">
           <h2>{session.answered ? 'Done for today' : cards.length ? 'Nothing is due right now' : 'This deck has no cards'}</h2>
@@ -131,23 +131,23 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
             {canUndo && <button onClick={takeBack}>Undo last answer</button>}
           </div>
         </section>
-      </>
+      </div>
     );
   }
 
   const intervals = revealed ? previewIntervals(states.get(card.id), Date.now(), settings.retention) : undefined;
   return (
-    <>
+    <div className="review">
       {head}
       <article className="sheet card" aria-label="Flashcard">
         {/* A cloze answer is the same sentence with the gap filled, so it replaces the question. */}
         {!(revealed && card.kind === 'cloze') && <Markdown text={card.front} />}
         <div aria-live="polite">
           {revealed && (
-            <>
+            <div className={card.kind === 'cloze' ? undefined : 'answer'}>
               {card.kind !== 'cloze' && <hr />}
               <Markdown text={card.back} />
-            </>
+            </div>
           )}
         </div>
         <p className="source muted">
@@ -155,31 +155,43 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
         </p>
       </article>
 
-      {intervals ? (
-        <div className="ratings" role="group" aria-label="How well did you remember?">
-          {RATINGS.map(({ rating, label }) => (
-            <button key={rating} className={`rating r${rating}`} onClick={() => rate(rating)}>
-              <span className="label">{label}</span>
-              <span className="when">{formatInterval(intervals[rating])}</span>
-              <kbd>{rating}</kbd>
+      {/* Stays at the bottom of the window, so the buttons are in one place whatever the card's length. */}
+      <div className="answerbar">
+        {intervals ? (
+          <div className="ratings" role="group" aria-label="How well did you remember?">
+            {RATINGS.map(({ rating, label }) => (
+              // The key is a hint for the eye; assistive tech gets it as a shortcut, not as part of the name.
+              <button key={rating} className={`rating r${rating}`} onClick={() => rate(rating)} aria-keyshortcuts={String(rating)}>
+                <span className="label">{label}</span>
+                <span className="when">{formatInterval(intervals[rating])}</span>
+                <kbd aria-hidden="true">{rating}</kbd>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="ratings">
+            <button className="button primary show" onClick={reveal} aria-keyshortcuts="Space">
+              Show answer <kbd aria-hidden="true">Space</kbd>
             </button>
-          ))}
-        </div>
-      ) : (
-        <div className="ratings">
-          <button className="button primary show" onClick={reveal}>
-            Show answer <kbd>Space</kbd>
-          </button>
-        </div>
-      )}
-      <p className="hint muted">
-        {revealed ? 'Space also means Good. ' : ''}
-        {canUndo && (
-          <button className="link" onClick={takeBack}>
-            Undo last answer (Z)
-          </button>
+          </div>
         )}
-      </p>
-    </>
+        <p className="hint muted">
+          {/* .keys is hidden where there is no keyboard. */}
+          {revealed && (
+            <span className="keys">
+              <kbd>Space</kbd> Good
+            </span>
+          )}
+          <span className="keys">
+            <kbd>Esc</kbd> Back to decks
+          </span>
+          {canUndo && (
+            <button className="link" onClick={takeBack} aria-keyshortcuts="Z">
+              <kbd className="keys" aria-hidden="true">Z</kbd> Undo last answer
+            </button>
+          )}
+        </p>
+      </div>
+    </div>
   );
 }

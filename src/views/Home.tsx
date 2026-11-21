@@ -29,22 +29,31 @@ export function Home({ store }: { store: Store }) {
       <section className="today" aria-labelledby="today-h">
         <div>
           <h1 id="today-h">{queue.length ? `${plural(queue.length, 'card')} to study today` : cards.length ? 'Nothing left to study today' : 'No cards yet'}</h1>
-          <p className="muted">
-            {queue.length > 0 && `${[queue.length > fresh && plural(queue.length - fresh, 'review'), fresh > 0 && `${fresh} new`].filter(Boolean).join(' and ')}. `}
-            {days > 0 ? `${plural(days, 'day')} in a row.` : 'Review today to start a streak.'}
-          </p>
+          {cards.length ? (
+            <p className="muted">
+              {queue.length > 0 && `${[queue.length > fresh && plural(queue.length - fresh, 'review'), fresh > 0 && `${fresh} new`].filter(Boolean).join(' and ')}. `}
+              {days > 0 ? `${plural(days, 'day')} in a row.` : 'Review today to start a streak.'}
+            </p>
+          ) : (
+            <p className="muted">
+              Add your Markdown notes below to make the first cards, or bring the sample deck back from <a href="#/settings">Settings</a>.
+            </p>
+          )}
         </div>
         {queue.length > 0 && (
           <a className="button primary" href="#/review">
             Study now
           </a>
         )}
-        <div className="goal">
-          <progress className="bar" max={settings.dailyGoal} value={Math.min(done, settings.dailyGoal)} aria-label="Daily goal" />
-          <span className="muted">
-            {done} of {settings.dailyGoal} reviews for today's goal{done >= settings.dailyGoal ? ', reached' : ''}
-          </span>
-        </div>
+        {/* No cards, nothing to count toward a goal. */}
+        {cards.length > 0 && (
+          <div className="goal">
+            <progress className="bar" max={settings.dailyGoal} value={Math.min(done, settings.dailyGoal)} aria-label="Daily goal" />
+            <span className="muted">
+              {done} of {settings.dailyGoal} reviews for today's goal{done >= settings.dailyGoal ? ', reached' : ''}
+            </span>
+          </div>
+        )}
       </section>
 
       {rows.length > 0 && (
@@ -52,12 +61,13 @@ export function Home({ store }: { store: Store }) {
           <h2 id="decks-h">Decks</h2>
           <ul className="decks">
             {rows.map((row) => (
-              <li key={row.path} style={{ paddingInlineStart: `${row.depth * 1.25}rem` }}>
+              <li key={row.path} className={row.depth ? 'sub' : undefined} style={{ paddingInlineStart: `${row.depth * 1.25}rem` }}>
                 <a href={`#/review?deck=${encodeURIComponent(row.path)}`}>
                   <span className="name">{row.name}</span>
+                  {/* Three fixed slots, so the numbers line up down the list. */}
                   <span className="counts">
-                    {row.counts.due > 0 && <b>{row.counts.due} due</b>}
-                    {row.counts.new > 0 && <span>{row.counts.new} new</span>}
+                    <span>{row.counts.due > 0 && <b>{row.counts.due} due</b>}</span>
+                    <span>{row.counts.new > 0 && `${row.counts.new} new`}</span>
                     <span className="muted">{plural(row.counts.total, 'card')}</span>
                   </span>
                 </a>

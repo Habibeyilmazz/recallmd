@@ -337,6 +337,27 @@ test('on a small phone a wide table or a long URL stays inside the card, and the
   await context.close();
 });
 
+test('each page is named in the tab title and takes the focus; the skip button jumps to the content', async ({ page }) => {
+  await open(page);
+  await expect(page).toHaveTitle('Decks | recallmd');
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Skip to content' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('main')).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Study now' })).toBeFocused();
+
+  await page.getByRole('link', { name: 'Stats' }).click();
+  await expect(page).toHaveTitle('Stats | recallmd');
+  await expect(page.getByRole('main')).toBeFocused();
+  await page.getByRole('link', { name: 'Decks' }).click();
+  await page.getByRole('link', { name: 'Study now' }).click();
+  await expect(page).toHaveTitle('Review | recallmd');
+  // A rating button names its action and interval; the key is a shortcut, not part of the name.
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('button', { name: 'Good 10m', exact: true })).toHaveAttribute('aria-keyshortcuts', '3');
+});
+
 test('works offline after the first visit', async ({ page, context }) => {
   await open(page);
   await page.evaluate(() => navigator.serviceWorker.ready);

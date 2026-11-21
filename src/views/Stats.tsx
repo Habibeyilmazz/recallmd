@@ -1,34 +1,41 @@
 import { useNow } from '../App';
 import type { AppData } from '../lib/data';
+import { plural } from './Home';
 import { countCards, forecast, retention, reviewsPerDay, reviewsToday, shiftDay, streak } from '../lib/stats';
 
 const dayLabel = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
 /** A plain bar chart. `dates[i]` is the day of `values[i]`; `unit` is singular; one bar is marked as today. */
-function Bars({ values, dates, today, unit, label }: { values: number[]; dates: number[]; today: number; unit: string; label: string }) {
+function Bars({ values, dates, today, unit, label, empty }: { values: number[]; dates: number[]; today: number; unit: string; label: string; empty: string }) {
   const max = Math.max(1, ...values);
   const total = values.reduce((a, b) => a + b, 0);
   const count = (n: number) => `${n} ${n === 1 ? unit : `${unit}s`}`;
   return (
     <figure className="chart">
-      <div className="bars" role="img" aria-label={`${label}: ${count(total)} in total, at most ${total ? max : 0} on one day. The numbers are in the table below.`}>
-        {values.map((v, i) => (
-          <div key={i} className={`col ${i === today ? 'now' : ''}`} title={`${dayLabel(dates[i]!)}: ${count(v)}`}>
-            <div className="fill" style={{ height: `${(v / max) * 100}%` }} />
-          </div>
-        ))}
-      </div>
+      {total ? (
+        <div className="bars" role="img" aria-label={`${label}: ${count(total)} in total, at most ${max} on one day. The numbers are in the table below.`}>
+          {values.map((v, i) => (
+            <div key={i} className={`col ${i === today ? 'now' : ''}`} title={`${dayLabel(dates[i]!)}: ${count(v)}`}>
+              <div className="fill" style={{ height: `${(v / max) * 100}%` }} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="bars none muted">{empty}</p>
+      )}
       <figcaption className="muted">
         <span>{dayLabel(dates[0]!)}</span>
-        <span>
-          {count(total)}, peak {total ? max : 0} a day
-        </span>
+        {total > 0 && (
+          <span>
+            {count(total)}, peak {max} a day
+          </span>
+        )}
         <span>{dayLabel(dates[dates.length - 1]!)}</span>
       </figcaption>
       {/* The same numbers as text: for screen readers, and for anyone who wants exact values. */}
-      <details>
-        <summary>Show the numbers</summary>
-        {total ? (
+      {total > 0 && (
+        <details>
+          <summary>Show the numbers</summary>
           <table>
             <thead>
               <tr>
@@ -45,10 +52,8 @@ function Bars({ values, dates, today, unit, label }: { values: number[]; dates: 
               ))}
             </tbody>
           </table>
-        ) : (
-          <p className="muted">Nothing yet.</p>
-        )}
-      </details>
+        </details>
+      )}
     </figure>
   );
 }
@@ -71,12 +76,12 @@ export function Stats({ data }: { data: AppData }) {
       <dl className="tiles">
         <div>
           <dt>Streak</dt>
-          <dd>{run.current} {run.current === 1 ? 'day' : 'days'}</dd>
-          <dd className="muted">Longest: {run.longest}</dd>
+          <dd>{plural(run.current, 'day')}</dd>
+          <dd className="muted">Longest: {plural(run.longest, 'day')}</dd>
         </div>
         <div>
           <dt>Retention, last {PAST} days</dt>
-          <dd>{kept.rate === null ? 'No data yet' : `${Math.round(kept.rate * 100)}%`}</dd>
+          <dd className={kept.rate === null ? 'none' : undefined}>{kept.rate === null ? 'No data yet' : `${Math.round(kept.rate * 100)}%`}</dd>
           <dd className="muted">
             {kept.rate === null
               ? 'Counts cards that have left the learning steps.'
@@ -97,6 +102,7 @@ export function Stats({ data }: { data: AppData }) {
         values={reviewsPerDay(logs, now, PAST)}
         dates={Array.from({ length: PAST }, (_, i) => shiftDay(now, PAST - 1 - i))}
         today={PAST - 1}
+        empty="No reviews yet. Each day you study adds a bar here."
       />
 
       <h2>Coming due, next {AHEAD} days</h2>
@@ -106,6 +112,7 @@ export function Stats({ data }: { data: AppData }) {
         values={forecast(cards, states, now, AHEAD)}
         dates={Array.from({ length: AHEAD }, (_, i) => shiftDay(now, -i))}
         today={0}
+        empty={cards.length ? 'Nothing is scheduled yet. New cards get a due date once you have studied them.' : 'No cards yet.'}
       />
 
       <h2>Cards</h2>
