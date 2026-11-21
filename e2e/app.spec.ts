@@ -290,6 +290,25 @@ test('export, erase and restore progress', async ({ page }) => {
   await expect(page.getByText('1 of 7 reviews')).toBeVisible();
 });
 
+test('a save the browser refuses is reported and not passed off as done', async ({ page }) => {
+  await open(page);
+  // From here on every write fails, as it does when the disk is full.
+  await page.evaluate(() => {
+    IDBDatabase.prototype.transaction = () => {
+      throw new DOMException('The quota has been exceeded.', 'QuotaExceededError');
+    };
+  });
+  const dialog = await importFiles(page, [md('notes.md', 'One :: 1')]);
+  await dialog.getByRole('button', { name: 'Import 1 card' }).click();
+  await expect(page.getByRole('alert')).toContainText('Something could not be saved: The quota has been exceeded.');
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText(/^Imported/)).toBeHidden();
+  await expect(page.getByRole('link', { name: /^notes/ })).toBeHidden();
+
+  await page.getByRole('button', { name: 'Dismiss' }).click();
+  await expect(page.getByRole('alert')).toBeHidden();
+});
+
 test('works offline after the first visit', async ({ page, context }) => {
   await open(page);
   await page.evaluate(() => navigator.serviceWorker.ready);

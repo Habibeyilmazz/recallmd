@@ -131,11 +131,14 @@ function AddNotes({ store }: { store: Store }) {
 
   const confirmImport = async () => {
     if (!plan) return;
-    await store.importNotes(plan);
+    const saved = await store.importNotes(plan);
+    // On failure the dialog still closes: the reason is on the page behind it.
     setStatus(
-      plan.upsert.length
-        ? `Imported ${plural(plan.upsert.length, 'card')} from ${plural(plan.files, 'note')}.`
-        : `Removed ${plural(plan.remove.length, 'card')}.`,
+      !saved
+        ? ''
+        : plan.upsert.length
+          ? `Imported ${plural(plan.upsert.length, 'card')} from ${plural(plan.files, 'note')}.`
+          : `Removed ${plural(plan.remove.length, 'card')}.`,
     );
     setPending(undefined);
   };

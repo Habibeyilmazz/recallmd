@@ -45,8 +45,7 @@ export function Settings({ store }: { store: Store }) {
       const backup = parseBackup(await file.text());
       const message = `Replace everything in this browser with the backup?\n\nIt holds ${plural(backup.cards.length, 'card')} and ${plural(backup.logs.length, 'review')}. Your current ${plural(data.cards.length, 'card')} and ${plural(data.logs.length, 'review')} will be erased.`;
       if (!confirm(message)) return;
-      await store.replaceAll(backup);
-      setStatus(`Restored ${plural(backup.cards.length, 'card')} and ${plural(backup.logs.length, 'review')}.`);
+      if (await store.replaceAll(backup)) setStatus(`Restored ${plural(backup.cards.length, 'card')} and ${plural(backup.logs.length, 'review')}.`);
     } catch (e) {
       setStatus(`Import failed. ${e instanceof Error ? e.message : String(e)}`);
     }
@@ -54,13 +53,11 @@ export function Settings({ store }: { store: Store }) {
 
   const eraseAll = async () => {
     if (!confirm('Erase all cards, review history and settings from this browser? This cannot be undone. Export your progress first if you may want it back.')) return;
-    await store.replaceAll();
-    setStatus('Everything was erased.');
+    if (await store.replaceAll()) setStatus('Everything was erased.');
   };
 
   const addSample = async () => {
-    await store.importNotes(planImport(data.cards, (id) => data.states.has(id), [SAMPLE]));
-    setStatus('The sample deck is on the Decks page.');
+    if (await store.importNotes(planImport(data.cards, (id) => data.states.has(id), [SAMPLE]))) setStatus('The sample deck is on the Decks page.');
   };
 
   return (

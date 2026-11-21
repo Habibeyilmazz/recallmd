@@ -16,12 +16,13 @@ export interface Answered {
 
 export interface Store {
   data: AppData;
-  importNotes: (plan: ImportPlan) => Promise<void>;
+  /** The three bulk writes resolve to false when storage refused them; the app then shows why. */
+  importNotes: (plan: ImportPlan) => Promise<boolean>;
   answer: (id: string, rating: Rating, now: number) => Answered;
   updateSettings: (patch: Partial<Settings>) => void;
-  deleteCards: (ids: string[]) => Promise<void>;
+  deleteCards: (ids: string[]) => Promise<boolean>;
   /** Replaces everything with a backup, or erases everything when called without one. */
-  replaceAll: (data?: AppData) => Promise<void>;
+  replaceAll: (data?: AppData) => Promise<boolean>;
 }
 
 export function useStore(): { store?: Store; error?: string; clearError: () => void } {
@@ -59,11 +60,21 @@ export function useStore(): { store?: Store; error?: string; clearError: () => v
 
   if (!data) return { error, clearError: () => setError(undefined) };
 
+  // A write that failed must not pass for one that worked: report it and tell the caller.
+  const written = (write: Promise<void>) =>
+    write.then(reload).then(
+      () => true,
+      (e: unknown) => {
+        fail(e);
+        return false;
+      },
+    );
+
   const store: Store = {
     data,
-    importNotes: (plan) => db.applyImport(plan, data.states).then(reload),
-    deleteCards: (ids) => db.deleteCards(ids).then(reload),
-    replaceAll: (next) => db.replaceAll(next).then(reload),
+    importNotes: (plan) => written(db.applyImport(plan, data.states)),
+    deleteCards: (ids) => written(db.deleteCards(ids)),
+    replaceAll: (next) => written(db.replaceAll(next)),
     updateSettings(patch) {
       const settings = { ...data.settings, ...patch };
       setData({ ...data, settings });
