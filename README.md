@@ -70,7 +70,7 @@ Card syntax inside code fences, inline code, inline math and one-line HTML comme
 - **Progress survives edits.** A card's identity is a hash of its question, not its file, position or answer. Fix an answer, move or rename the note, and the card keeps its schedule. If you reword a question but keep its answer, re-importing matches the old card to the new one by similarity and carries the progress over. (Change both and it is treated as a new card.)
 - **FSRS scheduling** (via [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs)) with Again / Hard / Good / Easy. Each button shows when the card would come back. Desired retention is adjustable (70–97%).
 - **Keyboard-first review.** `Space` or `Enter` shows the answer, `1`–`4` rate it, `Space` again means Good, `S` suspends the card, `Z` undoes the last answer or suspend, `Esc` goes back to the decks.
-- **Cards page.** Search every card by words from its question, answer, deck, note path or `#tag`, filter to what is due today, new or suspended, and see when each card is due. Suspend a card you do not want to review (a bad split, something you already know) and unsuspend it later: it keeps its progress, and stays suspended when you re-import or remove and re-add its note. Suspended cards are left out of reviews, the deck counts and the forecast.
+- **Cards page.** Search every card by words from its question, answer, deck, note path or `#tag`, filter to what is due today, new or suspended, and see when each card is due. Suspend a card you do not want to review (a bad split, something you already know) and unsuspend it later, or, once a search or filter has narrowed the list, suspend or unsuspend every card it found with one button: it keeps its progress, and stays suspended when you re-import or remove and re-add its note. Suspended cards are left out of reviews, the deck counts and the forecast.
 - **Daily goal, streak and stats**: reviews per day for the last 30 days, cards coming due over the next 14, true retention, and how many cards are new, learning and in review. Each chart can also be read as a table.
 - **Offline PWA.** After the first visit to a production build the app, fonts, KaTeX and the code highlighter are all cached; it can be installed and used without a connection.
 - **Your data is yours.** Cards, schedule, suspended cards and history are stored in IndexedDB in your browser. Settings → Export progress writes one JSON file; importing it on another browser or device restores everything.
@@ -139,7 +139,6 @@ CI runs all four on every push. `.github/workflows/deploy.yml` builds and publis
 - Re-sync a folder in one click with the File System Access API
 - Import attachments so local images show up
 - The Obsidian Spaced Repetition plugin's `#flashcards` deck tags and its multi-line end marker
-- Suspending or unsuspending every card a search finds at once
 - Showing a card's rendered Markdown on the Cards page (it lists the plain text today)
 - Merging a backup into existing data instead of replacing it
 - Optimizing FSRS parameters from your own review history

@@ -503,6 +503,18 @@ input[type='checkbox'] {
 .filters label {
   margin-bottom: 0.25rem;
 }
+.found {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-top: 0.5rem;
+  min-height: 2.75rem;
+}
+.found p {
+  margin: 0;
+}
 .browse {
   list-style: none;
   margin: 0.5rem 0 0;

@@ -104,6 +104,26 @@ test('suspend a card while reviewing, find it on the Cards page, and bring it ba
   await expect(page.getByRole('link', { name: /Learn recallmd in 2 minutes/ })).toContainText('13 new');
 });
 
+test('suspend every card a search finds, then bring them all back', async ({ page }) => {
+  await open(page);
+  await page.getByRole('link', { name: 'Cards', exact: true }).click();
+  await expect(page.getByRole('button', { name: /^Suspend (all )?\d+ card/ })).toHaveCount(0); // nothing narrowed yet
+  await page.getByRole('searchbox', { name: 'Search' }).fill('which key');
+  await expect(page.getByRole('status')).toHaveText('3 cards');
+  await page.getByRole('button', { name: /^Suspend: Which key shows/ }).click();
+  await page.getByRole('button', { name: 'Suspend 2 cards' }).click();
+  const bulk = page.getByRole('button', { name: 'Unsuspend all 3 cards' });
+  await expect(bulk).toBeFocused();
+  await page.getByRole('link', { name: 'Decks' }).click();
+  await expect(page.getByRole('link', { name: /Learn recallmd in 2 minutes/ })).toContainText('11 new');
+
+  await page.getByRole('link', { name: 'Cards', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Show' }).selectOption('Suspended');
+  await page.getByRole('button', { name: 'Unsuspend all 3 cards' }).click();
+  await expect(page.getByRole('status')).toHaveText('0 cards');
+  await expect(page.getByRole('searchbox', { name: 'Search' })).toBeFocused();
+});
+
 test('a pressed review button hands the focus on instead of dropping it', async ({ page }) => {
   await open(page);
   await study(page, 'Study now');

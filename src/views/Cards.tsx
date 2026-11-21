@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useRef, useState } from 'react';
 import { useNow } from '../App';
 import { cardStatus, findCards, statusLabel, type Show } from '../lib/browse';
 import type { Store } from '../store';
@@ -23,6 +23,19 @@ export function Cards({ store, initialShow }: { store: Store; initialShow: strin
   const [show, setShow] = useState<Show>(SHOWS.some(([s]) => s === initialShow) ? (initialShow as Show) : 'all');
   const search = useDeferredValue(query);
   const found = useMemo(() => findCards(cards, states, suspended, now, search, show), [cards, states, suspended, now, search, show]);
+  const searchBox = useRef<HTMLInputElement>(null);
+  // Acting on every match is offered only once a search or filter has narrowed them down.
+  const narrowed = search.trim() !== '' || show !== 'all';
+  const active = found.filter((c) => !suspended.has(c.id));
+  // One button that suspends what is left, or unsuspends all of them once none is left.
+  const bulk = active.length ? active : found;
+  const bulkOn = active.length > 0;
+
+  async function suspendFound() {
+    const ok = await store.suspend(bulk.map((c) => c.id), bulkOn);
+    // With a Show filter the cards leave the list and this button goes with them.
+    if (ok && show !== 'all') searchBox.current?.focus();
+  }
 
   return (
     <>
@@ -31,7 +44,7 @@ export function Cards({ store, initialShow }: { store: Store; initialShow: strin
       <div className="filters" role="search">
         <label>
           Search
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Question, answer, deck or #tag" />
+          <input ref={searchBox} type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Question, answer, deck or #tag" />
         </label>
         <label>
           Show
@@ -44,9 +57,17 @@ export function Cards({ store, initialShow }: { store: Store; initialShow: strin
           </select>
         </label>
       </div>
-      <p className="muted" role="status">
-        {found.length > LIMIT ? `Showing the first ${LIMIT} of ${found.length} cards. Search to narrow them down.` : plural(found.length, 'card')}
-      </p>
+      <div className="found">
+        <p className="muted" role="status">
+          {found.length > LIMIT ? `Showing the first ${LIMIT} of ${found.length} cards. Search to narrow them down.` : plural(found.length, 'card')}
+        </p>
+        {narrowed && found.length > 0 && (
+          <button onClick={() => void suspendFound()}>
+            {bulkOn ? 'Suspend' : 'Unsuspend'} {found.length === bulk.length && found.length > 1 ? 'all ' : ''}
+            {plural(bulk.length, 'card')}
+          </button>
+        )}
+      </div>
       {found.length > 0 && (
         <ul className="browse">
           {found.slice(0, LIMIT).map((card) => {
