@@ -84,12 +84,20 @@ export interface Counts {
   review: number;
   /** Learning or review cards due before midnight. */
   due: number;
+  /** Left out of reviews, and of every other count but `total`. */
+  suspended: number;
 }
 
-export function countCards(cards: Card[], states: ReadonlyMap<string, CardState>, now: number): Counts {
+const NONE: ReadonlySet<string> = new Set();
+
+export function countCards(cards: Card[], states: ReadonlyMap<string, CardState>, now: number, suspended = NONE): Counts {
   const midnight = startOfNextDay(now);
-  const c: Counts = { total: cards.length, new: 0, learning: 0, review: 0, due: 0 };
+  const c: Counts = { total: cards.length, new: 0, learning: 0, review: 0, due: 0, suspended: 0 };
   for (const card of cards) {
+    if (suspended.has(card.id)) {
+      c.suspended++;
+      continue;
+    }
     const s = states.get(card.id);
     if (!s || s.state === NEW) {
       c.new++;
@@ -115,7 +123,7 @@ export interface DeckRow {
 export const inDeck = (card: Card, deck: string) => card.deck === deck || card.deck.startsWith(`${deck}/`);
 
 /** Every deck and parent folder as a flat list in tree order (parents directly above their children). */
-export function deckRows(cards: Card[], states: ReadonlyMap<string, CardState>, now: number): DeckRow[] {
+export function deckRows(cards: Card[], states: ReadonlyMap<string, CardState>, now: number, suspended = NONE): DeckRow[] {
   const groups = new Map<string, Card[]>();
   for (const card of cards) {
     const parts = card.deck.split('/');
@@ -134,7 +142,7 @@ export function deckRows(cards: Card[], states: ReadonlyMap<string, CardState>, 
     return a.length - b.length;
   };
   return [...groups]
-    .map(([path, list]) => ({ path, parts: path.split('/'), counts: countCards(list, states, now) }))
+    .map(([path, list]) => ({ path, parts: path.split('/'), counts: countCards(list, states, now, suspended) }))
     .sort((a, b) => bySegments(a.parts, b.parts))
     .map(({ path, parts, counts }) => ({ path, name: parts[parts.length - 1]!, depth: parts.length - 1, counts }));
 }

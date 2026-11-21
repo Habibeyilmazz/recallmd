@@ -15,6 +15,8 @@ function sampleData(): AppData {
     states: new Map([[a!.id, schedule(undefined, 3, NOW, 0.9)], [b!.id, schedule(undefined, 4, NOW, 0.9)]]),
     logs: [{ id: a!.id, t: NOW, rating: 3, state: 0 }, { id: b!.id, t: NOW + 1, rating: 4, state: 0 }],
     settings: { dailyGoal: 30, newPerDay: 5, retention: 0.85, headings: true },
+    // A suspended card that was later removed stays suspended, like its progress.
+    suspended: new Set([b!.id, 'removed-card']),
   };
 }
 
@@ -50,8 +52,15 @@ describe('backup', () => {
     ['states as a list', broken((b) => (b.states = [])), 'damaged scheduling'],
     ['an impossible rating', broken((b) => (b.logs[0].rating = 5)), 'damaged review history'],
     ['missing logs', broken((b) => delete b.logs), 'damaged review history'],
+    ['suspended cards as a string', broken((b) => (b.suspended = 'abc')), 'damaged list of suspended'],
+    ['a suspended card that is not an id', broken((b) => b.suspended.push(7)), 'damaged list of suspended'],
   ])('rejects %s', (_name, json, message) => {
     expect(() => parseBackup(json)).toThrow(message);
+  });
+
+  it('reads a backup from before suspending existed', () => {
+    const json = broken((b) => delete b.suspended);
+    expect(parseBackup(json).suspended).toEqual(new Set());
   });
 
   it('accepts every state the scheduler itself can produce', () => {
@@ -87,7 +96,7 @@ describe('cleanSettings', () => {
 // One sequence against a single fake database, since the tests build on each other.
 describe('db', () => {
   it('starts empty with default settings', async () => {
-    expect(await db.loadAll()).toEqual({ cards: [], states: new Map(), logs: [], settings: DEFAULT_SETTINGS, sampleLoaded: false });
+    expect(await db.loadAll()).toEqual({ cards: [], states: new Map(), logs: [], settings: DEFAULT_SETTINGS, sampleLoaded: false, suspended: new Set() });
   });
 
   it('stores an import, a review, and takes the review back', async () => {
@@ -147,6 +156,13 @@ describe('db', () => {
     expect(await db.loadAll()).toMatchObject({ settings: { dailyGoal: 42 }, sampleLoaded: true });
   });
 
+  it('saves the suspended cards, and keeps them when the cards are removed', async () => {
+    await db.saveSuspended(new Set(['x', 'y']));
+    expect((await db.loadAll()).suspended).toEqual(new Set(['x', 'y']));
+    await db.saveSuspended(new Set(['y']));
+    expect((await db.loadAll()).suspended).toEqual(new Set(['y']));
+  });
+
   it('restores a backup over whatever was there', async () => {
     const data = sampleData();
     await db.replaceAll(data);
@@ -155,6 +171,6 @@ describe('db', () => {
 
   it('wipes everything but does not bring the sample deck back', async () => {
     await db.replaceAll();
-    expect(await db.loadAll()).toEqual({ cards: [], states: new Map(), logs: [], settings: DEFAULT_SETTINGS, sampleLoaded: true });
+    expect(await db.loadAll()).toEqual({ cards: [], states: new Map(), logs: [], settings: DEFAULT_SETTINGS, sampleLoaded: true, suspended: new Set() });
   });
 });

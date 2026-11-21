@@ -110,7 +110,15 @@ describe('countCards', () => {
       ['r-due', state(NOON - DAY)],
       ['r-later', state(NOON + 2 * DAY)],
     ]);
-    expect(countCards(cards, states, NOON)).toEqual({ total: 5, new: 1, learning: 2, review: 2, due: 2 });
+    expect(countCards(cards, states, NOON)).toEqual({ total: 5, new: 1, learning: 2, review: 2, due: 2, suspended: 0 });
+  });
+
+  it('counts a suspended card in the total and nowhere else', () => {
+    const cards = ['n', 'r-due', 'n-off', 'r-due-off'].map(card);
+    const states = new Map([['r-due', state(NOON - DAY)], ['r-due-off', state(NOON - DAY)]]);
+    expect(countCards(cards, states, NOON, new Set(['n-off', 'r-due-off', 'not-a-card']))).toEqual({
+      total: 4, new: 1, learning: 0, review: 1, due: 1, suspended: 2,
+    });
   });
 });
 
@@ -137,6 +145,7 @@ describe('decks', () => {
       ['bio notes', 'bio notes', 0, 1],
       ['Zoology', 'Zoology', 0, 1],
     ]);
-    expect(rows[0]!.counts).toEqual({ total: 3, new: 2, learning: 0, review: 1, due: 1 });
+    expect(rows[0]!.counts).toEqual({ total: 3, new: 2, learning: 0, review: 1, due: 1, suspended: 0 });
+    expect(deckRows(cards, new Map(), NOON, new Set(['3']))[0]!.counts).toEqual({ total: 3, new: 2, learning: 0, review: 0, due: 0, suspended: 1 });
   });
 });

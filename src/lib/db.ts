@@ -60,13 +60,14 @@ export async function loadAll(): Promise<AppData & { sampleLoaded: boolean }> {
   const tx = (await open()).transaction(STORES, 'readonly');
   const states = tx.objectStore('states');
   const kv = tx.objectStore('kv');
-  const [cards, ids, values, logs, settings, sampleLoaded] = await Promise.all([
+  const [cards, ids, values, logs, settings, sampleLoaded, suspended] = await Promise.all([
     done<Card[]>(tx.objectStore('cards').getAll()),
     done(states.getAllKeys()),
     done<CardState[]>(states.getAll()),
     done<ReviewLog[]>(tx.objectStore('logs').getAll()),
     done<unknown>(kv.get('settings')),
     done<unknown>(kv.get('sampleLoaded')),
+    done<unknown>(kv.get('suspended')),
   ]);
   return {
     cards: cards.sort(byNote), // IndexedDB returns them in id order
@@ -74,6 +75,7 @@ export async function loadAll(): Promise<AppData & { sampleLoaded: boolean }> {
     logs,
     settings: cleanSettings(settings),
     sampleLoaded: sampleLoaded === true,
+    suspended: new Set(Array.isArray(suspended) ? suspended.filter((id): id is string => typeof id === 'string') : []),
   };
 }
 
@@ -115,6 +117,11 @@ export function saveSettings(settings: Settings): Promise<void> {
   return write(['kv'], (s) => void s.kv.put(settings, 'settings'));
 }
 
+/** Stores the whole set of suspended card ids. */
+export function saveSuspended(ids: ReadonlySet<string>): Promise<void> {
+  return write(['kv'], (s) => void s.kv.put([...ids], 'suspended'));
+}
+
 export function markSampleLoaded(): Promise<void> {
   return write(['kv'], (s) => void s.kv.put(true, 'sampleLoaded'));
 }
@@ -126,8 +133,12 @@ export function replaceAll(data?: AppData): Promise<void> {
     s.states.clear();
     s.logs.clear();
     s.kv.put(true, 'sampleLoaded');
-    if (!data) return void s.kv.delete('settings');
+    if (!data) {
+      s.kv.delete('settings');
+      return void s.kv.delete('suspended');
+    }
     s.kv.put(data.settings, 'settings');
+    s.kv.put([...data.suspended], 'suspended');
     for (const card of data.cards) s.cards.put(card);
     for (const [id, state] of data.states) s.states.put(state, id);
     for (const log of data.logs) s.logs.add(log);

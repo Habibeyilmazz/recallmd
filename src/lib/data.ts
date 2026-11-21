@@ -20,6 +20,8 @@ export interface AppData {
   states: Map<string, CardState>;
   logs: ReviewLog[];
   settings: Settings;
+  /** Ids of cards left out of reviews. Kept when a card is removed, like its progress. */
+  suspended: Set<string>;
 }
 
 export interface Backup {
@@ -30,6 +32,8 @@ export interface Backup {
   cards: Card[];
   states: Record<string, CardState>;
   logs: ReviewLog[];
+  /** Missing in backups from before suspending existed. */
+  suspended?: string[];
 }
 
 export function makeBackup(data: AppData, now: number): Backup {
@@ -41,6 +45,7 @@ export function makeBackup(data: AppData, now: number): Backup {
     cards: data.cards,
     states: Object.fromEntries(data.states),
     logs: data.logs,
+    suspended: [...data.suspended],
   };
 }
 
@@ -113,6 +118,8 @@ export function parseBackup(json: string): AppData {
   if (!Array.isArray(raw.cards) || !raw.cards.every(isCard)) throw new Error('The backup has damaged cards.');
   if (!isObject(raw.states) || !Object.values(raw.states).every(isState)) throw new Error('The backup has damaged scheduling data.');
   if (!Array.isArray(raw.logs) || !raw.logs.every(isLog)) throw new Error('The backup has a damaged review history.');
+  const suspended = raw.suspended ?? [];
+  if (!Array.isArray(suspended) || !suspended.every(isString)) throw new Error('The backup has a damaged list of suspended cards.');
   const ids = new Set(raw.cards.map((c) => c.id));
   if (ids.size !== raw.cards.length) throw new Error('The backup has duplicate cards.');
   return {
@@ -120,5 +127,6 @@ export function parseBackup(json: string): AppData {
     cards: raw.cards,
     states: new Map(Object.entries(raw.states as Record<string, CardState>)),
     logs: raw.logs,
+    suspended: new Set(suspended),
   };
 }
