@@ -5,6 +5,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Launch review (round 14)
+
+Re-read the README, CONTRIBUTING, issue templates, repo description and topics against the running project: all present and matching reality (193 unit tests pass, CI green). Only change: fixed a stray comma in the README limits list. Reported gaps are documented limits, not bugs: images are not in the JSON export, no screen reader run, Firefox and Safari untested, `#flashcards` tags on the roadmap. No homepage is set because the app is not hosted.
+
 ### Fixed (reliability pass, round 13)
 
 - An image no card showed any more stayed in storage until "Erase everything" (a gap reported by round 12, reproduced first). After an import and after removing a deck's cards, stored images that no card's reference resolves to are now deleted (`pruneImages` in `src/lib/db.ts`). Unit test: "drops stored images that no card shows any more" (failed before the fix).
