@@ -85,6 +85,8 @@ Card syntax inside code fences, inline code, inline math and one-line HTML comme
 | --- | --- | --- |
 | ![Stats page](docs/screenshots/stats.png) | ![Import preview dialog](docs/screenshots/import.png) | ![Review on a phone in dark mode](docs/screenshots/review-phone-dark.png) |
 
+![The Cards page searched for #bio: each card's question, answer, status and note, with a Suspend button](docs/screenshots/cards.png)
+
 The screenshots are taken from the running app by `scripts/screenshots.mjs`, which imports the test vault in `e2e/fixtures/` and studies it over ten simulated days.
 
 ## How it compares

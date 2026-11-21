@@ -75,6 +75,12 @@ await page.goto(`${URL_BASE}#/stats`);
 await page.getByRole('heading', { name: 'Stats' }).waitFor();
 await page.screenshot({ path: out('stats.png'), fullPage: true });
 
+await page.goto(`${URL_BASE}#/cards`);
+await page.getByRole('heading', { name: 'Cards' }).waitFor();
+await page.getByRole('searchbox').fill('#bio');
+await page.getByText(/^\d+ cards?$/).waitFor();
+await page.screenshot({ path: out('cards.png') });
+
 await page.goto(URL_BASE);
 await page.getByTestId('files').setInputFiles({
   name: 'chemistry.md',

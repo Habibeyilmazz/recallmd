@@ -5,6 +5,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Changed (design pass, round 10)
+
+Every page was shot from the production build at 1180px and 390px, light and dark, and on an emulated touch phone (iPhone 13). Decks, review, Stats, Settings and the import dialog held up; the Cards page did not:
+
+- The Cards list showed raw Markdown marks: backticks, `**`, and `==[…]==` around cloze blanks. It now shows the text without them (`plainLine` in `src/lib/browse.ts`, unit-tested; `a == b` is left alone). Search still matches the note's own text.
+- On a phone each Cards row squeezed the question into a narrow column beside its Suspend button, cutting it after a few words. The button now drops below the text when the row is narrow.
+- README screenshots retaken from the running app, and a Cards page screenshot added (`scripts/screenshots.mjs` takes it).
+
+Still not done: no screen reader run, Firefox and Safari untested, the Obsidian `#flashcards` tags and end marker are on the roadmap.
+
 ### Fixed (first-run review, round 9)
 
 A fresh clone of `main` was set up by following the README quickstart literally (`npm install`, `npm run dev`, then `npm run build`, `npm run preview` and `npm run e2e`). Everything worked: 177 unit tests and 23 end-to-end tests pass, the sample deck loads on first run and a keyboard review of it runs with no console errors. The code was then read through as a sceptical reviewer. Found and fixed:
