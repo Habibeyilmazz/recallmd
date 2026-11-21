@@ -63,6 +63,47 @@ test('review with the keyboard: reveal, rate, undo', async ({ page }) => {
   await expect(page.getByText('1 of 20 reviews')).toBeVisible();
 });
 
+test('suspend a card while reviewing, find it on the Cards page, and bring it back', async ({ page }) => {
+  await open(page);
+  const card = await study(page, 'Study now');
+  await expect(card).toContainText('Which two characters');
+  await page.keyboard.press('s');
+  await expect(card).toContainText('Which key shows the answer');
+  await expect(page.getByText('9 to go')).toBeVisible();
+  await page.keyboard.press('z');
+  await expect(card).toContainText('Which two characters');
+  await expect(page.getByText('10 to go')).toBeVisible();
+  await page.getByRole('button', { name: 'Suspend card' }).click();
+  await expect(card).toContainText('Which key shows the answer');
+  await expect(page.getByRole('button', { name: 'Undo last suspend' })).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('link', { name: /Learn recallmd in 2 minutes/ })).toContainText('13 new');
+
+  await page.getByRole('link', { name: 'Cards', exact: true }).click();
+  await expect(page).toHaveTitle('Cards | recallmd');
+  await expect(page.getByRole('status')).toHaveText('14 cards');
+  await page.getByRole('combobox', { name: 'Show' }).selectOption('Suspended');
+  await expect(page.getByRole('status')).toHaveText('1 card');
+  await expect(page.getByRole('listitem')).toContainText('Which two characters');
+
+  await page.getByRole('combobox', { name: 'Show' }).selectOption('All cards');
+  await page.getByRole('searchbox', { name: 'Search' }).fill('takes BACK');
+  await expect(page.getByRole('status')).toHaveText('1 card');
+  await page.getByRole('button', { name: /^Suspend: Which key takes back/ }).click();
+  await page.reload();
+  await page.getByRole('combobox', { name: 'Show' }).selectOption('Suspended');
+  await expect(page.getByRole('status')).toHaveText('2 cards');
+
+  await page.getByRole('link', { name: 'Stats' }).click();
+  await page.getByRole('link', { name: '2 suspended' }).click();
+  await expect(page.getByRole('status')).toHaveText('2 cards');
+  await page.getByRole('button', { name: /^Unsuspend: Which two characters/ }).click();
+  await expect(page.getByRole('status')).toHaveText('1 card');
+  await page.getByRole('link', { name: 'Decks' }).click();
+  await expect(page.getByRole('link', { name: /Learn recallmd in 2 minutes/ })).toContainText('13 new');
+});
+
 test('a pressed review button hands the focus on instead of dropping it', async ({ page }) => {
   await open(page);
   await study(page, 'Study now');
@@ -318,6 +359,7 @@ test('export, erase and restore progress', async ({ page }) => {
   expect(backup).toMatchObject({ app: 'recallmd', version: 1, settings: { dailyGoal: 7 } });
   expect(backup.cards).toHaveLength(14);
   expect(backup.logs).toHaveLength(1);
+  expect(backup.suspended).toEqual([]);
 
   page.on('dialog', (d) => void d.accept());
   await page.getByRole('button', { name: 'Erase everything' }).click();

@@ -29,7 +29,11 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
   // The id of the card whose answer is showing, so a card swapped in from outside starts hidden.
   const [revealedId, setRevealedId] = useState<string>();
   const undo = useRef<{ session: typeof session; run: () => void } | undefined>(undefined);
-  const [canUndo, setCanUndo] = useState(false);
+  // What Z would take back: the last answer or the last suspend.
+  const [undoable, setUndoable] = useState<'answer' | 'suspend'>();
+  const canUndo = !!undoable;
+  const latest = useRef(store);
+  latest.current = store;
   // A pressed button that the next render removes would drop focus to <body>; this hands it to the button that replaces it.
   const view = useRef<HTMLDivElement>(null);
   const refocus = useRef(false);
@@ -57,8 +61,19 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
     const { next, undo: run } = store.answer(card.id, rating, now);
     const rest = afterAnswer(queue, card.id, next, now);
     undo.current = { session, run };
-    setCanUndo(true);
+    setUndoable('answer');
     setSession({ ...session, queue: rest, current: pickNext(rest, now)?.id, answered: session.answered + 1 });
+    setRevealedId(undefined);
+  };
+
+  // The card leaves the session as soon as it is suspended, since App drops it from `cards`.
+  const suspend = () => {
+    if (!card) return;
+    const { id } = card;
+    void store.suspend([id], true);
+    undo.current = { session, run: () => void latest.current.suspend([id], false) };
+    setUndoable('suspend');
+    setSession({ ...session, current: undefined });
     setRevealedId(undefined);
   };
 
@@ -66,7 +81,7 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
     const last = undo.current;
     if (!last) return;
     undo.current = undefined;
-    setCanUndo(false);
+    setUndoable(undefined);
     last.run();
     setSession(last.session);
     setRevealedId(undefined);
@@ -78,8 +93,8 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
   };
 
   // Keyboard-first: the handler reads the latest state through a ref, so it is attached once.
-  const keys = useRef({ rate, takeBack, reveal, revealed, card });
-  keys.current = { rate, takeBack, reveal, revealed, card };
+  const keys = useRef({ rate, takeBack, reveal, suspend, revealed, card });
+  keys.current = { rate, takeBack, reveal, suspend, revealed, card };
   // Layout effect: the keys work from the first frame the card is on screen.
   useLayoutEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -95,6 +110,8 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
           k.takeBack();
         } else if (!k.card) {
           return;
+        } else if (e.key === 's' || e.key === 'S') {
+          k.suspend();
         } else if (e.key === ' ' || e.key === 'Enter') {
           // A focused button or link keeps its own Space/Enter behaviour.
           if (/^(BUTTON|A|SUMMARY)$/.test(target.tagName)) return;
@@ -140,7 +157,7 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
                 Learn {Math.min(MORE, newLeft)} more new {Math.min(MORE, newLeft) === 1 ? 'card' : 'cards'}
               </button>
             )}
-            {canUndo && <button onClick={press(takeBack)}>Undo last answer</button>}
+            {canUndo && <button onClick={press(takeBack)}>Undo last {undoable}</button>}
           </div>
         </section>
       </div>
@@ -197,9 +214,12 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
           <span className="keys">
             <kbd>Esc</kbd> Back to decks
           </span>
+          <button className="link" onClick={press(suspend)} aria-keyshortcuts="S">
+            <kbd className="keys" aria-hidden="true">S</kbd> Suspend card
+          </button>
           {canUndo && (
             <button className="link" onClick={press(takeBack)} aria-keyshortcuts="Z">
-              <kbd className="keys" aria-hidden="true">Z</kbd> Undo last answer
+              <kbd className="keys" aria-hidden="true">Z</kbd> Undo last {undoable}
             </button>
           )}
         </p>

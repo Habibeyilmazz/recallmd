@@ -11,12 +11,12 @@ export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n ==
 
 export function Home({ store }: { store: Store }) {
   const now = useNow();
-  const { cards, states, logs, settings } = store.data;
-  const queue = buildQueue(cards, states, now, Math.max(0, settings.newPerDay - newSeenToday(logs, now)));
+  const { cards, states, logs, settings, suspended } = store.data;
+  const queue = buildQueue(cards.filter((c) => !suspended.has(c.id)), states, now, Math.max(0, settings.newPerDay - newSeenToday(logs, now)));
   const fresh = queue.filter((q) => q.due === 0).length;
   const done = reviewsToday(logs, now);
   const days = streak(logs, now).current;
-  const rows = useMemo(() => deckRows(cards, states, now), [cards, states, now]);
+  const rows = useMemo(() => deckRows(cards, states, now, suspended), [cards, states, now, suspended]);
   const tags = useMemo(() => [...new Set(cards.flatMap((c) => c.tags))].sort((a, b) => a.localeCompare(b)), [cards]);
 
   const removeDeck = (path: string, total: number) => {

@@ -1,6 +1,7 @@
 import { Component, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { inDeck } from './lib/stats';
 import { useStore } from './store';
+import { Cards } from './views/Cards';
 import { Home } from './views/Home';
 import { Review } from './views/Review';
 import { Settings } from './views/Settings';
@@ -11,7 +12,7 @@ const onHashChange = (notify: () => void) => {
   return () => removeEventListener('hashchange', notify);
 };
 
-/** Hash routes: "#/", "#/review?deck=…", "#/stats", "#/settings". They work from any base path and offline. */
+/** Hash routes: "#/", "#/review?deck=…", "#/cards", "#/stats", "#/settings". They work from any base path and offline. */
 function useRoute() {
   const hash = useSyncExternalStore(onHashChange, () => location.hash);
   const [path = '', query = ''] = hash.replace(/^#\/?/, '').split('?');
@@ -60,6 +61,7 @@ class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
 
 const NAV = [
   ['', 'Decks'],
+  ['cards', 'Cards'],
   ['stats', 'Stats'],
   ['settings', 'Settings'],
 ] as const;
@@ -99,9 +101,12 @@ export function App() {
   } else if (route.path === 'review') {
     const deck = route.params.get('deck');
     const tag = route.params.get('tag');
-    const cards = store.data.cards.filter((c) => (deck ? inDeck(c, deck) : tag ? c.tags.includes(tag) : true));
+    const { suspended } = store.data;
+    const cards = store.data.cards.filter((c) => !suspended.has(c.id) && (deck ? inDeck(c, deck) : tag ? c.tags.includes(tag) : true));
     // Keyed by route so a different deck starts a fresh session.
     page = <Review key={route.hash} store={store} cards={cards} title={deck ?? (tag ? `#${tag}` : 'All decks')} />;
+  } else if (route.path === 'cards') {
+    page = <Cards store={store} initialShow={route.params.get('show')} />;
   } else if (route.path === 'stats') {
     page = <Stats data={store.data} />;
   } else if (route.path === 'settings') {

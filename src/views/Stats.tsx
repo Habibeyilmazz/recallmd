@@ -63,10 +63,10 @@ const AHEAD = 14;
 
 export function Stats({ data }: { data: AppData }) {
   const now = useNow();
-  const { cards, states, logs, settings } = data;
+  const { cards, states, logs, settings, suspended } = data;
   const run = streak(logs, now);
   const kept = retention(logs, now, PAST);
-  const counts = countCards(cards, states, now);
+  const counts = countCards(cards, states, now, suspended);
   const done = reviewsToday(logs, now);
   const share = (n: number) => `${counts.total ? (n / counts.total) * 100 : 0}%`;
 
@@ -109,14 +109,14 @@ export function Stats({ data }: { data: AppData }) {
       <Bars
         label={`Cards coming due per day over the next ${AHEAD} days, overdue cards counted today`}
         unit="card"
-        values={forecast(cards, states, now, AHEAD)}
+        values={forecast(cards.filter((c) => !suspended.has(c.id)), states, now, AHEAD)}
         dates={Array.from({ length: AHEAD }, (_, i) => shiftDay(now, -i))}
         today={0}
         empty={cards.length ? 'Nothing is scheduled yet. New cards get a due date once you have studied them.' : 'No cards yet.'}
       />
 
       <h2>Cards</h2>
-      <div className="stack" role="img" aria-label={`${counts.total} cards: ${counts.new} new, ${counts.learning} learning, ${counts.review} in review.`}>
+      <div className="stack" role="img" aria-label={`${counts.total} cards: ${counts.new} new, ${counts.learning} learning, ${counts.review} in review${counts.suspended ? `, ${counts.suspended} suspended` : ''}.`}>
         <span className="s-new" style={{ width: share(counts.new) }} />
         <span className="s-learning" style={{ width: share(counts.learning) }} />
         <span className="s-review" style={{ width: share(counts.review) }} />
@@ -125,6 +125,7 @@ export function Stats({ data }: { data: AppData }) {
         <li><i className="s-new" /> {counts.new} new</li>
         <li><i className="s-learning" /> {counts.learning} learning</li>
         <li><i className="s-review" /> {counts.review} in review</li>
+        {counts.suspended > 0 && <li><a href="#/cards?show=suspended">{counts.suspended} suspended</a></li>}
       </ul>
     </>
   );

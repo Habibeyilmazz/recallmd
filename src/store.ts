@@ -21,6 +21,8 @@ export interface Store {
   answer: (id: string, rating: Rating, now: number) => Answered;
   updateSettings: (patch: Partial<Settings>) => void;
   deleteCards: (ids: string[]) => Promise<boolean>;
+  /** Leaves cards out of reviews (`on`) or brings them back. Shown at once; resolves to false if storage refused it. */
+  suspend: (ids: string[], on: boolean) => Promise<boolean>;
   /** Replaces everything with a backup, or erases everything when called without one. */
   replaceAll: (data?: AppData) => Promise<boolean>;
 }
@@ -75,6 +77,16 @@ export function useStore(): { store?: Store; error?: string; clearError: () => v
     importNotes: (plan) => written(db.applyImport(plan, data.states)),
     deleteCards: (ids) => written(db.deleteCards(ids)),
     replaceAll: (next) => written(db.replaceAll(next)),
+    suspend(ids, on) {
+      const suspended = new Set(data.suspended);
+      for (const id of ids) {
+        if (on) suspended.add(id);
+        else suspended.delete(id);
+      }
+      setData((d) => d && { ...d, suspended });
+      // Refused: show what storage holds again.
+      return written(db.saveSuspended(suspended)).then((ok) => ok || reload().then(() => false, () => false));
+    },
     updateSettings(patch) {
       const settings = { ...data.settings, ...patch };
       setData({ ...data, settings });
