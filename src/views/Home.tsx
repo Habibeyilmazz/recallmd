@@ -141,6 +141,7 @@ function AddNotes({ store }: { store: Store }) {
 
   const confirmImport = async () => {
     if (!plan) return;
+    const shown = pending;
     const saved = await store.importNotes(plan);
     // On failure the dialog still closes: the reason is on the page behind it.
     setStatus(
@@ -150,7 +151,8 @@ function AddNotes({ store }: { store: Store }) {
           ? `Imported ${plural(plan.upsert.length, 'card')} from ${plural(plan.files, 'note')}.`
           : `Removed ${plural(plan.remove.length, 'card')}.`,
     );
-    setPending(undefined);
+    // Files picked while this was saving have opened a new preview; leave that one open.
+    setPending((p) => (p === shown ? undefined : p));
   };
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
