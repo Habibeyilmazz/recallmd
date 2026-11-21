@@ -69,7 +69,8 @@ export function cardId(kind: CardKind, question: string): string {
 
 /** Blank out inline code and inline math so card syntax inside them is ignored. Length is preserved. */
 function mask(line: string): string {
-  return line.replace(/(`+)[^`]*?\1|\$[^$\n]+\$/g, (m) => '\0'.repeat(m.length));
+  // A code span closes on a backtick run of the same length, so ``a ` b`` is one span.
+  return line.replace(/(`+)[^\n]*?[^`\n]\1(?!`)|\$[^$\n]+\$/g, (m) => '\0'.repeat(m.length));
 }
 
 /** Index of the first " :: " separator outside code and math, or -1. */
@@ -161,7 +162,19 @@ export function parseMarkdown(text: string, source: string, options: ParseOption
     }
   }
 
+  // Everywhere outside code fences: drop one-line HTML comments (they are not note text,
+  // and Obsidian plugins keep data in them) and collect inline #tags.
   const tags = new Set(meta.tags);
+  for (let n = i; n < lines.length; n++) {
+    const fence = FENCE.exec(lines[n]!);
+    if (fence) {
+      n++;
+      while (n < lines.length && !closesFence(lines[n]!, fence[1]!)) n++;
+      continue;
+    }
+    if (lines[n]!.includes('<!--')) lines[n] = lines[n]!.replace(/<!--.*?-->/g, '').trimEnd();
+    for (const m of mask(lines[n]!).matchAll(TAG)) tags.add(m[1]!);
+  }
   const sections: { front: string; line: number; start: number; end: number }[] = [];
   const trail: { level: number; text: string }[] = [];
 
@@ -175,8 +188,6 @@ export function parseMarkdown(text: string, source: string, options: ParseOption
       i++;
       continue;
     }
-
-    for (const m of mask(line).matchAll(TAG)) tags.add(m[1]!);
 
     const heading = HEADING.exec(line);
     if (heading) {

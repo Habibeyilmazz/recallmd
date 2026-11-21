@@ -27,7 +27,7 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
     return { queue, current: pickNext(queue, now)?.id, answered: 0, total: queue.length };
   });
   const [revealed, setRevealed] = useState(false);
-  const undo = useRef<{ session: typeof session; run: () => Promise<void> } | undefined>(undefined);
+  const undo = useRef<{ session: typeof session; run: () => void } | undefined>(undefined);
   const [canUndo, setCanUndo] = useState(false);
 
   const card = session.current ? byId.get(session.current) : undefined;
@@ -49,10 +49,9 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
     if (!last) return;
     undo.current = undefined;
     setCanUndo(false);
-    void last.run().then(() => {
-      setSession(last.session);
-      setRevealed(false);
-    });
+    last.run();
+    setSession(last.session);
+    setRevealed(false);
   };
 
   const learnMore = () => {

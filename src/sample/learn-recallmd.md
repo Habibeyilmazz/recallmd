@@ -40,6 +40,6 @@ $$\int_0^1 x^2 \, dx = \frac{1}{3}$$
 
 How do you add your own notes? :: Drop `.md` files or a whole folder (an Obsidian vault works) onto the Decks page, or paste text.
 What decides which deck a card lands in? :: The note's folder and file name, or a `deck:` line in its front matter.
-You fixed a typo in a note and imported it again. What happens to that card's progress? :: It is kept. Cards are matched by their question, so edited answers and lightly reworded questions keep their schedule.
+You fixed a typo in a note and imported it again. What happens to that card's progress? :: It is kept. Cards are matched by their question, so an edited answer keeps its schedule, and so does a reworded question whose answer stayed the same.
 What do the four ratings change? :: When you see the card next. Again brings it back within minutes; Hard, Good and Easy push it progressively further out.
 How do you move your progress to another device? :: Settings → Export progress, then import that JSON file there.

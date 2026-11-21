@@ -45,17 +45,21 @@ export function similarity(a: string, b: string): number {
 
 const clozeAnswer = (c: Card) => /==(.+?)==/s.exec(c.back)?.[1] ?? '';
 
-/** How likely `next` is `old` with its question reworded. 0 means "different card". */
+/**
+ * How likely `next` is `old` with its question reworded: 0 means "a different card".
+ * The answer (for a cloze, the hidden text) has to be unchanged; a new question with a
+ * new answer is a new card however similar the wording, e.g. the same question template
+ * asked about something else.
+ */
 export function rewordScore(old: Card, next: Card): number {
   if (old.kind !== next.kind) return 0;
-  const score = similarity(old.front, next.front);
   const sameAnswer =
     old.kind === 'cloze'
       ? normalize(clozeAnswer(old)) === normalize(clozeAnswer(next))
       : normalize(old.back) === normalize(next.back);
-  // A cloze that hides something else is a different card however similar the sentence.
-  if (old.kind === 'cloze' && !sameAnswer) return 0;
-  return score >= (sameAnswer ? 0.5 : 0.75) ? score : 0;
+  if (!sameAnswer) return 0;
+  const score = similarity(old.front, next.front);
+  return score >= 0.6 ? score : 0;
 }
 
 export function planImport(

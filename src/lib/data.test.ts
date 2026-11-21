@@ -43,11 +43,25 @@ describe('backup', () => {
     ['duplicate cards', broken((b) => b.cards.push(b.cards[0])), 'duplicate cards'],
     ['a non-numeric due date', broken((b) => (Object.values<any>(b.states)[0].due = '2026')), 'damaged scheduling'],
     ['an impossible state', broken((b) => (Object.values<any>(b.states)[0].state = 9)), 'damaged scheduling'],
+    ['a negative stability', broken((b) => (Object.values<any>(b.states)[0].stability = -10)), 'damaged scheduling'],
+    ['a difficulty below the scale', broken((b) => (Object.values<any>(b.states)[0].difficulty = 0)), 'damaged scheduling'],
+    ['a date no calendar can hold', broken((b) => (Object.values<any>(b.states)[0].last_review = 1e100)), 'damaged scheduling'],
+    ['a review at a negative time', broken((b) => (b.logs[0].t = -1)), 'damaged review history'],
     ['states as a list', broken((b) => (b.states = [])), 'damaged scheduling'],
     ['an impossible rating', broken((b) => (b.logs[0].rating = 5)), 'damaged review history'],
     ['missing logs', broken((b) => delete b.logs), 'damaged review history'],
   ])('rejects %s', (_name, json, message) => {
     expect(() => parseBackup(json)).toThrow(message);
+  });
+
+  it('accepts every state the scheduler itself can produce', () => {
+    const data = sampleData();
+    let state = schedule(undefined, 1, NOW, 0.9);
+    for (const rating of [1, 2, 3, 4, 3, 1, 3, 3, 4, 2] as const) {
+      data.states.set(data.cards[0]!.id, state);
+      expect(parseBackup(JSON.stringify(makeBackup(data, NOW))).states.get(data.cards[0]!.id)).toEqual(state);
+      state = schedule(state, rating, state.due + 3 * 86_400_000, 0.9);
+    }
   });
 
   it('repairs settings instead of rejecting the file', () => {

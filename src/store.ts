@@ -10,7 +10,8 @@ export const SAMPLE: NoteFile = { path: 'Learn recallmd in 2 minutes.md', text: 
 
 export interface Answered {
   next: CardState;
-  undo: () => Promise<void>;
+  /** Takes the answer back: at once in memory, and in storage as soon as the answer itself is saved. */
+  undo: () => void;
 }
 
 export interface Store {
@@ -63,8 +64,7 @@ export function useStore(): { store?: Store; error?: string; clearError: () => v
       saved.catch(fail);
       return {
         next,
-        async undo() {
-          await db.undoReview(id, previous, await saved);
+        undo() {
           setData((d) => {
             if (!d) return d;
             const states = new Map(d.states);
@@ -72,6 +72,7 @@ export function useStore(): { store?: Store; error?: string; clearError: () => v
             else states.delete(id);
             return { ...d, states, logs: d.logs.filter((l) => l !== log) };
           });
+          saved.then((key) => db.undoReview(id, previous, key)).catch(fail);
         },
       };
     },

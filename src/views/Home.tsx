@@ -132,7 +132,11 @@ function AddNotes({ store }: { store: Store }) {
   const confirmImport = async () => {
     if (!plan) return;
     await store.importNotes(plan);
-    setStatus(`Imported ${plural(plan.upsert.length, 'card')} from ${plural(plan.files, 'note')}.`);
+    setStatus(
+      plan.upsert.length
+        ? `Imported ${plural(plan.upsert.length, 'card')} from ${plural(plan.files, 'note')}.`
+        : `Removed ${plural(plan.remove.length, 'card')}.`,
+    );
     setPending(undefined);
   };
 
@@ -188,11 +192,14 @@ lists and math, up to the next blank line`}</pre>
       )}
 
       {pending && plan && (
-        <Modal title={plan.upsert.length ? `${plural(plan.upsert.length, 'card')} in ${plural(plan.files, 'note')}` : 'No cards found'} onClose={() => setPending(undefined)}>
-          {plan.upsert.length > 0 ? (
+        <Modal
+          title={plan.upsert.length ? `${plural(plan.upsert.length, 'card')} in ${plural(plan.files, 'note')}` : plan.remove.length ? 'No cards left in these notes' : 'No cards found'}
+          onClose={() => setPending(undefined)}
+        >
+          {plan.upsert.length + plan.remove.length > 0 ? (
             <ul className="summary">
               {/* A reworded card is one removal plus one addition; report it once, as reworded. */}
-              <li>{plan.added - plan.moves.length} new</li>
+              {plan.upsert.length > 0 && <li>{plan.added - plan.moves.length} new</li>}
               {plan.changed > 0 && <li>{plan.changed} changed</li>}
               {plan.unchanged > 0 && <li>{plan.unchanged} already imported, unchanged</li>}
               {plan.moves.length > 0 && (
@@ -224,12 +231,12 @@ lists and math, up to the next blank line`}</pre>
             </details>
           )}
           <div className="actions">
-            {plan.upsert.length > 0 && (
+            {plan.upsert.length + plan.remove.length > 0 && (
               <button className="button primary" data-autofocus onClick={() => void confirmImport()}>
-                Import {plural(plan.upsert.length, 'card')}
+                {plan.upsert.length ? `Import ${plural(plan.upsert.length, 'card')}` : `Remove ${plural(plan.remove.length, 'card')}`}
               </button>
             )}
-            <button onClick={() => setPending(undefined)}>{plan.upsert.length ? 'Cancel' : 'Close'}</button>
+            <button onClick={() => setPending(undefined)}>{plan.upsert.length + plan.remove.length ? 'Cancel' : 'Close'}</button>
           </div>
         </Modal>
       )}

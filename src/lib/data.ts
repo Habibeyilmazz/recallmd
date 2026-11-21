@@ -72,20 +72,29 @@ function isCard(v: unknown): v is Card {
   );
 }
 
+/** Largest time a JavaScript Date can hold. */
+const MAX_TIME = 8.64e15;
+const isTime = (v: unknown): v is number => isNumber(v) && v >= 0 && v <= MAX_TIME;
+const isCount = (v: unknown): v is number => isNumber(v) && v >= 0;
+
+// Ranges matter, not just types: FSRS throws on a negative stability and returns NaN for an absurd date.
 function isState(v: unknown): v is CardState {
   return (
     isObject(v) &&
-    isNumber(v.due) && isNumber(v.stability) && isNumber(v.difficulty) &&
-    isNumber(v.elapsed_days) && isNumber(v.scheduled_days) && isNumber(v.learning_steps) &&
-    isNumber(v.reps) && isNumber(v.lapses) &&
+    isTime(v.due) && (v.last_review === undefined || isTime(v.last_review)) &&
+    isCount(v.stability) && v.stability <= 36500 &&
+    isCount(v.difficulty) && v.difficulty <= 10 &&
+    isCount(v.elapsed_days) && isCount(v.scheduled_days) && isCount(v.learning_steps) &&
+    isCount(v.reps) && isCount(v.lapses) &&
     isNumber(v.state) && [0, 1, 2, 3].includes(v.state) &&
-    (v.last_review === undefined || isNumber(v.last_review))
+    // Anything past "new" has been reviewed, so it has a memory state.
+    (v.state === 0 || (v.stability > 0 && v.difficulty >= 1))
   );
 }
 
 function isLog(v: unknown): v is ReviewLog {
   return (
-    isObject(v) && isString(v.id) && isNumber(v.t) &&
+    isObject(v) && isString(v.id) && isTime(v.t) &&
     isNumber(v.rating) && [1, 2, 3, 4].includes(v.rating) &&
     isNumber(v.state) && [0, 1, 2, 3].includes(v.state)
   );

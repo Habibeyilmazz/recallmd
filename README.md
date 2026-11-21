@@ -56,14 +56,14 @@ print(len([1, 2, 3]))
 | `Q:` … `A:` | Multi-line card. The answer runs to the next blank line; code fences inside it may contain blank lines. |
 | `## Heading` + text | Optional (tick "turn headings into questions" in the import preview). The heading path is the question and the section text is the answer. |
 
-Card syntax inside code fences, inline code and inline math is ignored. Answers and questions are rendered as Markdown, with syntax-highlighted code and KaTeX math (`$inline$` and `$$block$$`).
+Card syntax inside code fences, inline code, inline math and one-line HTML comments is ignored. Answers and questions are rendered as Markdown, with syntax-highlighted code and KaTeX math (`$inline$` and `$$block$$`).
 
 **Decks** come from the note's path (`Vault/biology/cells.md` becomes the deck `Vault/biology/cells`, nested under `Vault` and `Vault/biology`), or from a `deck:` line in the front matter. **Tags** come from front matter `tags:` and inline `#tags`, and you can study by tag.
 
 ## Features
 
 - **Import** by dropping `.md`, `.markdown` or `.txt` files or a whole folder anywhere on the page, by picking files or a folder, or by pasting text. Dot-folders such as `.obsidian` are skipped. A preview shows what will be added, changed and removed before anything is written.
-- **Progress survives edits.** A card's identity is a hash of its question, not its file, position or answer. Fix an answer, move or rename the note, and the card keeps its schedule. If you reword the question, re-importing the note matches the old card to the new one by similarity and carries the progress over.
+- **Progress survives edits.** A card's identity is a hash of its question, not its file, position or answer. Fix an answer, move or rename the note, and the card keeps its schedule. If you reword a question but keep its answer, re-importing matches the old card to the new one by similarity and carries the progress over. (Change both and it is treated as a new card.)
 - **FSRS scheduling** (via [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs)) with Again / Hard / Good / Easy. Each button shows when the card would come back. Desired retention is adjustable (70–97%).
 - **Keyboard-first review.** `Space` or `Enter` shows the answer, `1`–`4` rate it, `Space` again means Good, `Z` undoes the last answer, `Esc` goes back to the decks.
 - **Daily goal, streak and stats**: reviews per day for the last 30 days, cards coming due over the next 14, true retention, and how many cards are new, learning and in review.
@@ -82,7 +82,7 @@ The screenshots are taken from the running app by `scripts/screenshots.mjs`, whi
 ## How it works
 
 - `src/lib/parser.ts` walks a note line by line and returns cards. It is a pure function with no DOM, and has the bulk of the unit tests.
-- `src/lib/importer.ts` compares the parsed cards with what is stored and produces an import plan: cards to write, cards that disappeared from a re-imported note, and progress to move from a removed card to its reworded replacement (Dice similarity over character bigrams, with a lower bar when the answer is unchanged).
+- `src/lib/importer.ts` compares the parsed cards with what is stored and produces an import plan: cards to write, cards that disappeared from a re-imported note, and progress to move from a removed card to its reworded replacement (same answer, and a Dice similarity of at least 0.6 between the questions' character bigrams).
 - `src/lib/scheduler.ts` wraps ts-fsrs and builds the day's queue: cards in a learning step first, then reviews due before local midnight, then new cards up to the daily allowance. A card answered Again comes back in the same session.
 - `src/lib/stats.ts` computes streak, retention, forecast and deck counts from the review log.
 - `src/lib/db.ts` stores cards, FSRS state, the review log and settings in IndexedDB. Removing a deck keeps its progress, so importing the same notes later restores it.

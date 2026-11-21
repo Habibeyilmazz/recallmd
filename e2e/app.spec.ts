@@ -165,6 +165,13 @@ test('re-importing an edited note keeps progress', async ({ page }) => {
   // Both studied cards are still studied; only the brand-new card is new.
   await expect(page.getByRole('link', { name: /^geo/ })).toContainText('1 new');
   await expect(page.getByRole('link', { name: /^geo/ })).toContainText('3 cards');
+
+  // Emptying the note removes its cards, and with them the deck.
+  dialog = await importFiles(page, [md('geo.md', 'Just prose now.')]);
+  await expect(dialog.getByRole('heading')).toHaveText('No cards left in these notes');
+  await dialog.getByRole('button', { name: 'Remove 3 cards' }).click();
+  await expect(page.getByRole('status').first()).toHaveText('Removed 3 cards.');
+  await expect(page.getByRole('link', { name: /^geo/ })).toHaveCount(0);
 });
 
 test('pasting text, heading cards, and an import with nothing in it', async ({ page }) => {

@@ -29,6 +29,17 @@ describe('one-line cards', () => {
     expect(pairs('Math $a :: b$ only')).toEqual([]);
   });
 
+  it('treats a double-backtick code span containing backticks as one span', () => {
+    expect(pairs('Use ``a ` b ` c :: d`` here.')).toEqual([]);
+    expect(pairs('What does ``a ` b :: c`` do? :: Nothing')).toEqual([['What does ``a ` b :: c`` do?', 'Nothing']]);
+    expect(pairs('Use ``a ` b ==secret==`` here.')).toEqual([]);
+  });
+
+  it('ignores one-line HTML comments', () => {
+    expect(pairs('<!-- todo :: later -->\nq :: a <!--SR:!2026-01-01,3,250-->')).toEqual([['q', 'a']]);
+    expect(pairs('```html\n<!-- kept -->\n```\nQ: q\nA: `x` <!-- gone -->')).toEqual([['q', '`x`']]);
+  });
+
   it('keeps later separators in the answer', () => {
     expect(pairs('q :: a :: b')).toEqual([['q', 'a :: b']]);
   });
@@ -193,6 +204,11 @@ describe('decks and tags', () => {
   it('collects inline #tags but not headings, code or numbers', () => {
     const md = '# Title\nSome #bio/cells text and `#notatag` and issue #12.\n```\n#!/bin/sh #nope\n```\nq :: a #exam';
     expect(parse(md).cards[0]!.tags).toEqual(['bio/cells', 'exam']);
+  });
+
+  it('collects inline #tags from inside Q:/A: blocks and cloze paragraphs too', () => {
+    const md = 'Q: q #in-question\nA: a\nmore #in-answer\n\nFirst line\nsecond ==gap== #in-cloze\n\n- q2 :: a2 #in-line';
+    expect(parse(md).cards[0]!.tags).toEqual(['in-question', 'in-answer', 'in-cloze', 'in-line']);
   });
 
   it('does not parse front matter content as cards', () => {

@@ -23,14 +23,15 @@ describe('rewordScore', () => {
   const basic = (front: string, back: string) => cardsOf(`${front} :: ${back}`)[0]!;
   const cloze = (text: string) => cardsOf(text)[0]!;
 
-  it('accepts a lightly reworded question', () => {
+  it('accepts a reworded question with the same answer', () => {
     expect(rewordScore(basic('What is the capitol of France?', 'Paris'), basic('What is the capital of France?', 'Paris'))).toBeGreaterThan(0);
+    expect(rewordScore(basic('Capital city of France?', 'Paris'), basic('What is the capital of France?', 'Paris'))).toBeGreaterThan(0);
+    expect(rewordScore(basic('Capital of France?', 'Paris'), basic('capital of france?', ' PARIS '))).toBe(1);
   });
 
-  it('accepts a heavier rewording only when the answer is unchanged', () => {
-    const old = basic('Capital city of France?', 'Paris');
-    expect(rewordScore(old, basic('What is the capital of France?', 'Paris'))).toBeGreaterThan(0);
-    expect(rewordScore(old, basic('What is the capital of France?', 'Lyon'))).toBe(0);
+  it('rejects a similar question whose answer changed: it is a different card', () => {
+    expect(rewordScore(basic('What is the chemical symbol of sodium?', 'Na'), basic('What is the chemical symbol of helium?', 'He'))).toBe(0);
+    expect(rewordScore(basic('What is the capitol of France?', 'Paris'), basic('What is the capital of France?', 'Lyon'))).toBe(0);
   });
 
   it('rejects different questions that share an answer', () => {
