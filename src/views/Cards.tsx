@@ -1,6 +1,6 @@
 import { useDeferredValue, useMemo, useRef, useState } from 'react';
 import { useNow } from '../App';
-import { cardStatus, findCards, statusLabel, type Show } from '../lib/browse';
+import { cardStatus, findCards, plainLine, statusLabel, type Show } from '../lib/browse';
 import type { Store } from '../store';
 import { plural } from './Home';
 
@@ -12,9 +12,6 @@ const SHOWS: [Show, string][] = [
 ];
 // Thousands of rows would make every keystroke slow; a search narrows it down instead.
 const LIMIT = 100;
-
-/** One line of plain text from card Markdown, for the list. */
-const oneLine = (text: string) => text.replace(/\s+/g, ' ').trim();
 
 export function Cards({ store, initialShow }: { store: Store; initialShow: string | null }) {
   const now = useNow();
@@ -73,12 +70,12 @@ export function Cards({ store, initialShow }: { store: Store; initialShow: strin
           {found.slice(0, LIMIT).map((card) => {
             const status = cardStatus(states.get(card.id), suspended.has(card.id), now);
             const off = status.kind === 'suspended';
-            const question = oneLine(card.front);
+            const question = plainLine(card.front);
             return (
               <li key={card.id} className={off ? 'off' : undefined}>
                 <div className="text">
                   <p className="q">{question}</p>
-                  <p className="a muted">{oneLine(card.back)}</p>
+                  <p className="a muted">{plainLine(card.back)}</p>
                   <p className="meta muted">
                     <span className={`status ${status.kind}`}>{statusLabel(status, now)}</span>
                     {/* The deck is usually the note's path; name it only when front matter chose another. */}

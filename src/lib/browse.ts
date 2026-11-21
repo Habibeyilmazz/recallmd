@@ -12,6 +12,16 @@ export function cardStatus(state: CardState | undefined, suspended: boolean, now
   return state.due < startOfNextDay(now) ? { kind: 'due' } : { kind: 'later', due: state.due };
 }
 
+/** One line of plain text from card Markdown, for the list: code ticks, bold and cloze marks dropped. */
+export function plainLine(text: string): string {
+  return text
+    .replace(/`([^`\n]+)`/g, '$1')
+    .replace(/\*\*(\S(?:.*?\S)?)\*\*/g, '$1')
+    .replace(/==(?=[^\s=])(.+?)(?<=[^\s=])==/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export function statusLabel(status: Status, now: number): string {
   if (status.kind === 'later') return `Due in ${formatInterval(status.due - now)}`;
   return { suspended: 'Suspended', new: 'New', due: 'Due today' }[status.kind];

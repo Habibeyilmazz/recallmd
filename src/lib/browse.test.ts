@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cardStatus, findCards, statusLabel } from './browse';
+import { cardStatus, findCards, plainLine, statusLabel } from './browse';
 import type { Card } from './parser';
 import { DAY, LEARNING, NEW, REVIEW, type CardState } from './scheduler';
 
@@ -62,5 +62,16 @@ describe('findCards', () => {
     expect(ids('', 'suspended')).toEqual(['hist']);
     expect(ids('wall', 'suspended')).toEqual(['hist']);
     expect(ids('ribosomes', 'suspended')).toEqual([]);
+  });
+});
+
+describe('plainLine', () => {
+  it('drops code ticks, bold and cloze marks and joins lines', () => {
+    expect(plainLine('Use `Q :: A`\nor **bold** and ==[…]==.')).toBe('Use Q :: A or bold and […].');
+    expect(plainLine('The ==FSRS== algorithm')).toBe('The FSRS algorithm');
+  });
+  it('leaves comparisons and lone markers alone', () => {
+    expect(plainLine('a == b and c ** d')).toBe('a == b and c ** d');
+    expect(plainLine('a lone ` tick')).toBe('a lone ` tick');
   });
 });
