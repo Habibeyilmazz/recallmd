@@ -406,6 +406,7 @@ test('export, erase and restore progress', async ({ page }) => {
   page.on('dialog', (d) => void d.accept());
   await page.getByRole('button', { name: 'Erase everything' }).click();
   await expect(page.getByRole('status')).toHaveText('Everything was erased.');
+  await expect(page.getByLabel('Daily goal')).toHaveValue('20');
   await page.goto('/#/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('No cards yet');
 
@@ -415,6 +416,7 @@ test('export, erase and restore progress', async ({ page }) => {
 
   await page.getByTestId('backup').setInputFiles(file);
   await expect(page.getByRole('status')).toHaveText('Restored 14 cards and 1 review.');
+  await expect(page.getByLabel('Daily goal')).toHaveValue('7');
   await page.reload();
   await expect(page.getByLabel('Daily goal')).toHaveValue('7');
   await page.goto('/#/');

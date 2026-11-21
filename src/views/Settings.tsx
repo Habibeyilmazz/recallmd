@@ -18,6 +18,8 @@ export function Settings({ store }: { store: Store }) {
   const { settings } = data;
   const [status, setStatus] = useState('');
   const backupInput = useRef<HTMLInputElement>(null);
+  // Bumped when a restore or erase replaces the settings, so the uncontrolled number fields show the new values.
+  const [restored, setRestored] = useState(0);
 
   // Number fields are uncontrolled so they can be emptied while typing; valid values save at once.
   const number = (key: 'dailyGoal' | 'newPerDay') => ({
@@ -45,7 +47,9 @@ export function Settings({ store }: { store: Store }) {
       const backup = parseBackup(await file.text());
       const message = `Replace everything in this browser with the backup?\n\nIt holds ${plural(backup.cards.length, 'card')} and ${plural(backup.logs.length, 'review')}. Your current ${plural(data.cards.length, 'card')} and ${plural(data.logs.length, 'review')} will be erased.`;
       if (!confirm(message)) return;
-      if (await store.replaceAll(backup)) setStatus(`Restored ${plural(backup.cards.length, 'card')} and ${plural(backup.logs.length, 'review')}.`);
+      if (!(await store.replaceAll(backup))) return;
+      setRestored((n) => n + 1);
+      setStatus(`Restored ${plural(backup.cards.length, 'card')} and ${plural(backup.logs.length, 'review')}.`);
     } catch (e) {
       setStatus(`Import failed. ${e instanceof Error ? e.message : String(e)}`);
     }
@@ -53,7 +57,9 @@ export function Settings({ store }: { store: Store }) {
 
   const eraseAll = async () => {
     if (!confirm('Erase all cards, review history and settings from this browser? This cannot be undone. Export your progress first if you may want it back.')) return;
-    if (await store.replaceAll()) setStatus('Everything was erased.');
+    if (!(await store.replaceAll())) return;
+    setRestored((n) => n + 1);
+    setStatus('Everything was erased.');
   };
 
   const addSample = async () => {
@@ -63,7 +69,7 @@ export function Settings({ store }: { store: Store }) {
   return (
     <>
       <h1>Settings</h1>
-      <section className="fields" aria-label="Study settings">
+      <section key={restored} className="fields" aria-label="Study settings">
         <label>
           Daily goal
           <input {...number('dailyGoal')} min={1} max={9999} />
