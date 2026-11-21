@@ -471,6 +471,11 @@ textarea {
   font: 0.9375rem/1.5 var(--mono);
   resize: vertical;
 }
+/* The placeholder shows the card syntax, so it has to be readable: the browser's grey is 3.4:1 on the dark theme. */
+::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
 input[type='number'] {
   max-width: 8rem;
 }
