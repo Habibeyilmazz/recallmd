@@ -62,18 +62,20 @@ print(len([1, 2, 3]))
 
 Card syntax inside code fences, inline code, inline math and one-line HTML comments is ignored. Answers and questions are rendered as Markdown, with syntax-highlighted code and KaTeX math (`$inline$` and `$$block$$`).
 
+**Images** in a card show up when you import them along with the note: drop or pick the whole vault folder (or pick the note and its image files together). Both `![[cell.png]]` (with `|300` for a width) and `![alt](img/cell.png)` work. A reference is looked up the way Obsidian does it: next to the note first, then anywhere in what you added, closest to the note. Only the images that cards show are stored (PNG, JPEG, GIF, WebP, AVIF, SVG, BMP, up to 20 MB each); the import preview counts them and lists any it could not find. Re-importing a note on its own still finds the images stored before.
+
 **Decks** come from the note's path (`Vault/biology/cells.md` becomes the deck `Vault/biology/cells`, nested under `Vault` and `Vault/biology`), or from a `deck:` line in the front matter. **Tags** come from front matter `tags:` and inline `#tags`, and you can study by tag.
 
 ## Features
 
-- **Import** by dropping `.md`, `.markdown` or `.txt` files or a whole folder anywhere on the Decks page, by picking files or a folder, or by pasting text. Dot-folders such as `.obsidian` are skipped. A preview shows what will be added, changed and removed before anything is written.
+- **Import** by dropping `.md`, `.markdown` or `.txt` files (and the images they show) or a whole folder anywhere on the Decks page, by picking files or a folder, or by pasting text. Dot-folders such as `.obsidian` are skipped. A preview shows what will be added, changed and removed before anything is written.
 - **Progress survives edits.** A card's identity is a hash of its question, not its file, position or answer. Fix an answer, move or rename the note, and the card keeps its schedule. If you reword a question but keep its answer, re-importing matches the old card to the new one by similarity and carries the progress over. (Change both and it is treated as a new card.)
 - **FSRS scheduling** (via [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs)) with Again / Hard / Good / Easy. Each button shows when the card would come back. Desired retention is adjustable (70–97%).
 - **Keyboard-first review.** `Space` or `Enter` shows the answer, `1`–`4` rate it, `Space` again means Good, `S` suspends the card, `Z` undoes the last answer or suspend, `Esc` goes back to the decks.
 - **Cards page.** Search every card by words from its question, answer, deck, note path or `#tag`, filter to what is due today, new or suspended, and see when each card is due. Suspend a card you do not want to review (a bad split, something you already know) and unsuspend it later, or, once a search or filter has narrowed the list, suspend or unsuspend every card it found with one button: it keeps its progress, and stays suspended when you re-import or remove and re-add its note. Suspended cards are left out of reviews, the deck counts and the forecast.
 - **Daily goal, streak and stats**: reviews per day for the last 30 days, cards coming due over the next 14, true retention, and how many cards are new, learning and in review. Each chart can also be read as a table.
 - **Offline PWA.** After the first visit to a production build the app, fonts, KaTeX and the code highlighter are all cached; it can be installed and used without a connection.
-- **Your data is yours.** Cards, schedule, suspended cards and history are stored in IndexedDB in your browser. Settings → Export progress writes one JSON file; importing it on another browser or device restores everything.
+- **Your data is yours.** Cards, images, schedule, suspended cards and history are stored in IndexedDB in your browser. Settings → Export progress writes one JSON file; importing it on another browser or device restores everything but the images, which come back when you import the notes again.
 - Light and dark themes following the system setting, and a layout that works on a phone, with the answer buttons at the bottom of the screen.
 - **Built to be usable without a mouse or with low vision:** a skip button, visible focus everywhere, text at 4.5:1 contrast or better, 44px touch targets, and respect for the reduced-motion and forced-colours settings. This was checked in Chromium with scripts and the keyboard, not yet with a screen reader.
 
@@ -97,7 +99,7 @@ The screenshots are taken from the running app by `scripts/screenshots.mjs`, whi
 | Scheduler | FSRS, default parameters | FSRS or SM-2, parameter optimizer | SM-2 variant |
 | Needs install or account | Neither (a web page) | Desktop app; AnkiWeb for sync | Obsidian |
 | Sync between devices | None; export and import a JSON file | AnkiWeb and mobile apps | Whatever syncs your vault |
-| Card types, add-ons, media | Text cards (`::`, `:::`, `?`, `??`, `Q:`/`A:`, cloze), no media import | Many note types, large add-on ecosystem, images and audio | Cloze, `::` and multi-line cards |
+| Card types, add-ons, media | Text cards (`::`, `:::`, `?`, `??`, `Q:`/`A:`, cloze) with images from your notes; no audio | Many note types, large add-on ecosystem, images and audio | Cloze, `::` and multi-line cards |
 
 Use Anki if you need sync, media, add-ons or a tuned scheduler; it is far more mature. Use the Obsidian plugin if you live inside Obsidian and want to review there. recallmd is for when you want to review any Markdown notes, from any editor, in a browser tab without installing anything. It reads the cards you already wrote; it does not edit your notes. This table is from the projects' public descriptions, so check their docs for the details.
 
@@ -106,6 +108,7 @@ Use Anki if you need sync, media, add-ons or a tuned scheduler; it is far more m
 - `src/lib/parser.ts` walks a note line by line and returns cards. It is a pure function with no DOM, and has the bulk of the unit tests.
 - `src/lib/importer.ts` compares the parsed cards with what is stored and produces an import plan: cards to write, cards that disappeared from a re-imported note, and progress to move from a removed card to its reworded replacement (same answer, and a Dice similarity of at least 0.6 between the questions' character bigrams).
 - `src/lib/scheduler.ts` wraps ts-fsrs and builds the day's queue: cards in a learning step first, then reviews due before local midnight, then new cards up to the daily allowance. A card answered Again comes back in the same session.
+- `src/lib/media.ts` works out which imported image file a reference like `![[cell.png]]` means, and which images an import has to store. The renderer leaves a placeholder that `src/views/Markdown.tsx` fills from IndexedDB.
 - `src/lib/browse.ts` filters cards for the Cards page and labels their status.
 - `src/lib/stats.ts` computes streak, retention, forecast and deck counts from the review log.
 - `src/lib/db.ts` stores cards, FSRS state, the review log and settings in IndexedDB, and announces each write to other open tabs over a `BroadcastChannel`. Removing a deck keeps its progress, so importing the same notes later restores it.
@@ -116,7 +119,7 @@ Use Anki if you need sync, media, add-ons or a tuned scheduler; it is far more m
 
 ```sh
 npm run typecheck   # tsc
-npm test            # unit tests (Vitest): parser, importer, scheduler, stats, card search, Markdown rendering, storage, backups
+npm test            # unit tests (Vitest): parser, importer, scheduler, stats, card search, Markdown rendering, image lookup, storage, backups
 npm run build
 npm run e2e         # Playwright against the production build; run `npm run build` first
 ```
@@ -131,7 +134,7 @@ CI runs all four on every push. `.github/workflows/deploy.yml` builds and publis
 - Several tabs share one set of data and tell each other about every change: a card you answer in one tab leaves a review session that is open in another. Cards that became due or were imported after a session started join it only when you start it again.
 - The browser cannot watch your files. After editing notes, import them again (the preview shows what changed).
 - A paragraph with so many highlights that its cloze cards would hold more than about 2 million characters in all is skipped with a warning; split it up.
-- Only text is imported. Local images and Obsidian `![[embeds]]` are shown as a name, not the file. Images linked by `http(s)` URL are loaded from their server when the card is shown (without a `Referer` header, but the server still sees your IP address).
+- Images are imported, other attachments are not: an embedded note, PDF or audio file (`![[Other note]]`) is shown as a name. Stored images are not in the progress export, and an image no card uses any more stays stored until "Erase everything". Images linked by `http(s)` URL are loaded from their server when the card is shown (without a `Referer` header, but the server still sees your IP address).
 - Picking or dropping a folder depends on browser support; on most phones you can only pick files or paste text.
 - The automated browser tests run in Chromium only, and the design was checked there too. Firefox and Safari are untested.
 - A day ends at local midnight, and FSRS runs with its default parameters.
@@ -139,7 +142,6 @@ CI runs all four on every push. `.github/workflows/deploy.yml` builds and publis
 ## Roadmap
 
 - Re-sync a folder in one click with the File System Access API
-- Import attachments so local images show up
 - The Obsidian Spaced Repetition plugin's `#flashcards` deck tags and its multi-line end marker
 - Showing a card's rendered Markdown on the Cards page (it lists the plain text today)
 - Merging a backup into existing data instead of replacing it

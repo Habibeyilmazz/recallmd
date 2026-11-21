@@ -5,6 +5,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added (feature round 12)
+
+Chosen by importing an Obsidian-style vault as a newcomer would: a card whose whole point is a picture (`What is this? :: ![[diagram.png]]`) showed only "[embed: diagram.png]", and vaults are full of such cards. The Obsidian `#flashcards` tags and end marker matter only to users of that plugin, so images came first.
+
+- Images in notes show on the cards. Dropping or picking a folder (or picking a note with its image files) brings the images along; `![[cell.png]]`, `![[cell.png|300]]` (width) and `![alt](img/cell.png)` are looked up next to the note first, then anywhere in what was added, closest to the note (`resolveImage` in `src/lib/media.ts`). Only images a card shows are stored, in a new IndexedDB store `media` (database version 2; a version 1 database is upgraded in place, unit-tested). PNG, JPEG, GIF, WebP, AVIF, SVG and BMP up to 20 MB each.
+- The import preview counts the images it will store ("2 images shown on the cards") and lists each reference it could not find under "skipped". Re-importing a note on its own finds images stored earlier.
+- "Erase everything" also removes the images. Restoring a backup keeps them: the JSON export does not hold images (said on the Settings page and in the README).
+- Tests: unit tests for resolving references (relative paths, `%20`, vault-wide names, case, picked files), for which images an import stores, for the renderer's placeholder and `imageRefs`, and for storing, replacing and erasing images; an end-to-end test imports `e2e/fixtures/images` and checks both images decode on their cards and the missing one is named.
+- Not done: images are not in the progress export, an image no card uses any more stays stored until "Erase everything", non-image embeds (notes, PDFs, audio) are still shown by name. Still open from earlier rounds: no screen reader run, Firefox and Safari untested, the Obsidian `#flashcards` tags and end marker.
+
 ### Security (round 11)
 
 Re-audited the trust boundaries (note Markdown and its HTML, dropped files and folders, backup JSON, hash routes), the workflows, the dependencies and the git history.
