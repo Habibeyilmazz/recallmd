@@ -121,6 +121,19 @@ function readFrontMatter(lines: string[]): { tags: string[]; deck?: string } {
   return { tags: tags.map(unquote).filter(Boolean), deck: deck || undefined };
 }
 
+/** Removes `<!-- ... -->` from one line. A loop, not a regex: `/<!--.*?-->/g` is quadratic on unclosed comments. */
+function dropComments(line: string): string {
+  let out = '';
+  let pos = 0;
+  for (;;) {
+    const open = line.indexOf('<!--', pos);
+    const close = open < 0 ? -1 : line.indexOf('-->', open + 4);
+    if (close < 0) return out + line.slice(pos);
+    out += line.slice(pos, open);
+    pos = close + 3;
+  }
+}
+
 interface Draft {
   kind: CardKind;
   /** Text the id is derived from. */
@@ -130,10 +143,15 @@ interface Draft {
   line: number;
 }
 
-function clozeDrafts(unit: string, line: number): Draft[] {
+/** Text a paragraph's cloze cards may hold in all: each card copies the paragraph twice. */
+const CLOZE_BUDGET = 2_000_000;
+
+function clozeDrafts(unit: string, line: number): Draft[] | string {
   const masked = mask(unit);
   const hits = [...masked.matchAll(CLOZE)].map((m) => ({ start: m.index, end: m.index + m[0].length }));
   if (!hits.length) return [];
+  // A long paragraph full of highlights would need gigabytes and crash the tab.
+  if (hits.length * unit.length > CLOZE_BUDGET) return `${hits.length} highlights in one paragraph is too many; split it up`;
   const hidden = hits.map((h) => unit.slice(h.start + 2, h.end - 2));
   // Rebuild the unit keeping `==` around at most one highlight.
   const build = (target: number, replacement?: string) => {
@@ -182,7 +200,7 @@ export function parseMarkdown(text: string, source: string, options: ParseOption
       while (n < lines.length && !closesFence(lines[n]!, fence[1]!)) n++;
       continue;
     }
-    if (lines[n]!.includes('<!--')) lines[n] = lines[n]!.replace(/<!--.*?-->/g, '').trimEnd();
+    if (lines[n]!.includes('<!--')) lines[n] = dropComments(lines[n]!).trimEnd();
     for (const m of mask(lines[n]!).matchAll(TAG)) tags.add(m[1]!);
   }
   const sections: { front: string; line: number; start: number; end: number }[] = [];
@@ -246,7 +264,9 @@ export function parseMarkdown(text: string, source: string, options: ParseOption
       j++;
     }
     const unit = [line.replace(LIST_MARKER, ''), ...lines.slice(i + 1, j)].join('\n').trim();
-    drafts.push(...clozeDrafts(unit, i + 1));
+    const cloze = clozeDrafts(unit, i + 1);
+    if (typeof cloze === 'string') warnings.push(`${source}:${i + 1}: ${cloze}`);
+    else drafts.push(...cloze);
     i = j;
   }
 

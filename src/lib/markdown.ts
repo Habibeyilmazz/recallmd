@@ -91,7 +91,8 @@ const marked = new Marked({
         return i < 0 ? undefined : i;
       },
       tokenizer(src) {
-        const m = /^(!?)\[\[([^\]|\n]+)(?:\|([^\]\n]+))?\]\]/.exec(src);
+        // Bounded lengths keep this linear: unbounded, a long line of `![[a|` took seconds.
+        const m = /^(!?)\[\[([^\]|\n]{1,500})(?:\|([^\]\n]{1,500}))?\]\]/.exec(src);
         if (m) return { type: 'wikilink', raw: m[0], text: m[1] ? m[2]! : (m[3] ?? m[2]!), embed: !!m[1] };
       },
       renderer: (token) => (token.embed ? `<em>[embed: ${escapeHtml(token.text)}]</em>` : escapeHtml(token.text)),

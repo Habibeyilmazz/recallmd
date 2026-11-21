@@ -35,6 +35,13 @@ describe('one-line cards', () => {
     expect(pairs('Use ``a ` b ==secret==`` here.')).toEqual([]);
   });
 
+  it('drops comments in linear time, even when they are never closed', () => {
+    expect(pairs('a <!-- x --> b <!-- y --> :: c <!---->d <!--> e')).toEqual([['a  b', 'c d <!--> e']]);
+    const started = performance.now();
+    parse('<!--'.repeat(200_000));
+    expect(performance.now() - started).toBeLessThan(1000); // was minutes
+  });
+
   it('ignores one-line HTML comments', () => {
     expect(pairs('<!-- todo :: later -->\nq :: a <!--SR:!2026-01-01,3,250-->')).toEqual([['q', 'a']]);
     expect(pairs('```html\n<!-- kept -->\n```\nQ: q\nA: `x` <!-- gone -->')).toEqual([['q', '`x`']]);
@@ -129,6 +136,15 @@ describe('Q:/A: blocks', () => {
 });
 
 describe('cloze deletions', () => {
+  it('refuses a paragraph whose cards would not fit in memory, with a warning', () => {
+    const started = performance.now();
+    const result = parse('==a'.repeat(100_000)); // was a crash: about 10 GB of card text
+    expect(performance.now() - started).toBeLessThan(1000);
+    expect(result.cards).toEqual([]);
+    expect(result.warnings).toEqual(['notes/test.md:1: 50000 highlights in one paragraph is too many; split it up']);
+    expect(parse(Array.from({ length: 100 }, (_, n) => `==w${n}==`).join(' ')).cards).toHaveLength(100);
+  });
+
   it('makes one card per highlight, revealing the others', () => {
     expect(pairs('The ==mitochondria== makes ==ATP==.')).toEqual([
       ['The ==[…]== makes ATP.', 'The ==mitochondria== makes ATP.'],
