@@ -303,7 +303,9 @@ export function parseMarkdown(text: string, source: string, options: ParseOption
     drafts.sort((a, b) => a.line - b.line);
   }
 
-  const deck = meta.deck ?? (cleanDeck(source.replace(/\.(md|markdown|txt)$/i, '')) || 'Notes');
+  // The Obsidian Spaced Repetition plugin files a note tagged #flashcards/a/b under the deck a/b.
+  const tagDeck = cleanDeck([...tags].find((t) => /^flashcards\//i.test(t))?.slice(11) ?? '');
+  const deck = meta.deck ?? (tagDeck || cleanDeck(source.replace(/\.(md|markdown|txt)$/i, '')) || 'Notes');
   const cards: Card[] = [];
   const ids = new Set<string>();
   for (const d of drafts) {

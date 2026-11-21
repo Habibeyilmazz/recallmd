@@ -285,6 +285,20 @@ describe('decks and tags', () => {
     expect(parse('---\ndeck: "Exams/Bio"\n---\nq :: a').cards[0]!.deck).toBe('Exams/Bio');
   });
 
+  it('takes the deck from an Obsidian Spaced Repetition #flashcards/… tag', () => {
+    const deckOf = (text: string) => parseMarkdown(text, 'Vault/bio/cells.md').cards[0]!.deck;
+    expect(deckOf('#flashcards/science/chemistry\n\nq :: a')).toBe('science/chemistry');
+    expect(deckOf('---\ntags: [exam, flashcards/Bio]\n---\nq :: a')).toBe('Bio');
+    expect(deckOf('q :: a #Flashcards/Bio')).toBe('Bio');
+    expect(deckOf('#flashcards/a #flashcards/b\nq :: a')).toBe('a');
+    // A plain #flashcards tag only marks the note for the plugin; the path still names the deck.
+    expect(deckOf('#flashcards\nq :: a')).toBe('Vault/bio/cells');
+    expect(deckOf('#flashcardsx/a\nq :: a')).toBe('Vault/bio/cells');
+    expect(deckOf('`#flashcards/code`\nq :: a')).toBe('Vault/bio/cells');
+    expect(deckOf('---\ndeck: Exams\n---\n#flashcards/a\nq :: a')).toBe('Exams');
+    expect(parseMarkdown('#flashcards/a\nq :: b', 'n.md').cards[0]!.tags).toEqual(['flashcards/a']);
+  });
+
   it('reads tags from front matter in inline, list and plain form', () => {
     expect(parse('---\ntags: [bio, "exam"]\n---\nq :: a').cards[0]!.tags).toEqual(['bio', 'exam']);
     expect(parse('---\ntags:\n  - bio\n  - "#exam"\ntitle: x\n---\nq :: a').cards[0]!.tags).toEqual(['bio', 'exam']);

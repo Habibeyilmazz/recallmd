@@ -64,7 +64,7 @@ Card syntax inside code fences, inline code, inline math and one-line HTML comme
 
 **Images** in a card show up when you import them along with the note: drop or pick the whole vault folder (or pick the note and its image files together). Both `![[cell.png]]` (with `|300` for a width) and `![alt](img/cell.png)` work. A reference is looked up the way Obsidian does it: next to the note first, then anywhere in what you added, closest to the note. Only the images that cards show are stored (PNG, JPEG, GIF, WebP, AVIF, SVG, BMP, up to 20 MB each); the import preview counts them and lists any it could not find. Re-importing a note on its own still finds the images stored before.
 
-**Decks** come from the note's path (`Vault/biology/cells.md` becomes the deck `Vault/biology/cells`, nested under `Vault` and `Vault/biology`), or from a `deck:` line in the front matter. **Tags** come from front matter `tags:` and inline `#tags`, and you can study by tag.
+**Decks** come from the note's path (`Vault/biology/cells.md` becomes the deck `Vault/biology/cells`, nested under `Vault` and `Vault/biology`), or from a `deck:` line in the front matter. A note tagged `#flashcards/science/chemistry`, as the Obsidian Spaced Repetition plugin files decks, goes into the deck `science/chemistry` unless its front matter names a deck (with several such tags, the first one counts; a plain `#flashcards` tag keeps the path deck). **Tags** come from front matter `tags:` and inline `#tags`, and you can study by tag.
 
 ## Features
 
@@ -142,7 +142,7 @@ CI runs all four on every push. `.github/workflows/deploy.yml` builds and publis
 ## Roadmap
 
 - Re-sync a folder in one click with the File System Access API
-- The Obsidian Spaced Repetition plugin's `#flashcards` deck tags and its multi-line end marker
+- The Obsidian Spaced Repetition plugin's multi-line end marker and deck tags placed on a single card
 - Showing a card's rendered Markdown on the Cards page (it lists the plain text today)
 - Merging a backup into existing data instead of replacing it
 - Optimizing FSRS parameters from your own review history

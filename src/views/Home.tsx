@@ -212,7 +212,8 @@ lists and math, up to the next blank line`}</pre>
         </p>
         <p className="muted">
           Cards written for the Obsidian Spaced Repetition plugin work too: <code>:::</code> makes a card both ways, and a
-          line of <code>?</code> (or <code>??</code>) between a question and its answer makes a multi-line card.
+          line of <code>?</code> (or <code>??</code>) between a question and its answer makes a multi-line card, and a
+          note tagged <code>#flashcards/science</code> goes into the deck <code>science</code>.
         </p>
       </details>
 

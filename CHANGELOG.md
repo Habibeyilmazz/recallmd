@@ -5,6 +5,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added (feature round 15)
+
+Chosen by importing a note written for the Obsidian Spaced Repetition plugin: its `#flashcards/science` tag, which is how that plugin files a note into a deck, was ignored, so a migrated vault lost its deck layout and fell back to folder names.
+
+- A note tagged `#flashcards/a/b` (inline or in front matter, any case) goes into the deck `a/b`. A front matter `deck:` still wins; with several such tags the first counts; a plain `#flashcards` tag keeps the path deck. The tag stays a tag. Card identity does not depend on the deck, so re-importing keeps progress. Parser unit test and the Obsidian end-to-end test cover it; README and in-app help say so.
+- Not done: the plugin's opt-in multi-line end marker and deck tags placed on a single card (roadmap); images still not in the JSON export; no screen reader run; Firefox and Safari untested.
+
 ### Launch review (round 14)
 
 Re-read the README, CONTRIBUTING, issue templates, repo description and topics against the running project: all present and matching reality (193 unit tests pass, CI green). Only change: fixed a stray comma in the README limits list. Reported gaps are documented limits, not bugs: images are not in the JSON export, no screen reader run, Firefox and Safari untested, `#flashcards` tags on the roadmap. No homepage is set because the app is not hosted.

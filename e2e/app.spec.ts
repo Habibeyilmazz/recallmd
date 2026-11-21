@@ -382,10 +382,12 @@ test('pasting text, heading cards, and an import with nothing in it', async ({ p
 
 test('a note written for the Obsidian Spaced Repetition plugin', async ({ page }) => {
   await open(page);
-  const note = 'Capital of France ::: Paris\n\nName the noble gases\nof period 2 and 3\n?\nNeon\nArgon\n<!--SR:!2026-01-01,3,250-->\n';
+  const note = '#flashcards/Quiz/Geo\n\nCapital of France ::: Paris\n\nName the noble gases\nof period 2 and 3\n?\nNeon\nArgon\n<!--SR:!2026-01-01,3,250-->\n';
   const dialog = await importFiles(page, [md('obsidian.md', note)]);
   await dialog.getByRole('button', { name: 'Import 3 cards' }).click();
-  const card = await study(page, /^obsidian/);
+  // The #flashcards/… tag names the deck, not the file name.
+  await expect(page.getByRole('link', { name: /^obsidian/ })).toHaveCount(0);
+  const card = await study(page, /^Geo/);
   await expect(card).toContainText('Capital of France');
   await page.keyboard.press('Space');
   await expect(card).toContainText('Paris');
