@@ -94,7 +94,7 @@ export function useStore(): { store?: Store; error?: string; clearError: () => v
     },
     answer(id, rating, now) {
       const previous = data.states.get(id);
-      const next = schedule(previous, rating, now, data.settings.retention);
+      const next = schedule(previous, rating, now, data.settings.retention, id);
       const log = { id, t: now, rating, state: previous?.state ?? NEW };
       setData((d) => d && { ...d, states: new Map(d.states).set(id, next), logs: [...d.logs, log] });
       const forget = () =>

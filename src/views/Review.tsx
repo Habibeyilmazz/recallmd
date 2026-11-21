@@ -164,7 +164,7 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
     );
   }
 
-  const intervals = revealed ? previewIntervals(states.get(card.id), Date.now(), settings.retention) : undefined;
+  const intervals = revealed ? previewIntervals(states.get(card.id), Date.now(), settings.retention, card.id) : undefined;
   return (
     <div className="review" ref={view}>
       {head}

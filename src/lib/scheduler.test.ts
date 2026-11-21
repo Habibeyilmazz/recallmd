@@ -51,6 +51,17 @@ describe('schedule', () => {
     }
   });
 
+  it('gives the interval a button showed when it is pressed seconds later, and spreads cards apart', () => {
+    const state = review([3, 3, 3, 3, 3]);
+    const shown = previewIntervals(state, state.due, R, 'card-a')[3];
+    for (let wait = 1000; wait <= 60_000; wait += 1000) {
+      const now = state.due + wait;
+      expect(formatInterval(schedule(state, 3, now, R, 'card-a').due - now)).toBe(formatInterval(shown));
+    }
+    const intervals = new Set(['a', 'b', 'c', 'd', 'e', 'f'].map((id) => schedule(state, 3, state.due, R, id).due));
+    expect(intervals.size).toBeGreaterThan(1);
+  });
+
   it('records the review on the card', () => {
     const s = schedule(undefined, 3, NOON, R);
     expect(s).toMatchObject({ reps: 1, lapses: 0, last_review: NOON });

@@ -1,5 +1,5 @@
 // FSRS scheduling (via ts-fsrs) and the review queue. Times are epoch milliseconds.
-import { createEmptyCard, fsrs, generatorParameters, type FSRS, type Grade } from 'ts-fsrs';
+import { createEmptyCard, fsrs, GenSeedStrategyWithCardId, generatorParameters, StrategyMode, type FSRS, type Grade } from 'ts-fsrs';
 import type { Card } from './parser';
 
 export const NEW = 0;
@@ -61,15 +61,20 @@ const engines = new Map<number, FSRS>();
 function engine(retention: number): FSRS {
   let f = engines.get(retention);
   if (!f) {
-    f = fsrs(generatorParameters({ request_retention: retention, enable_fuzz: true }));
+    // Fuzz is seeded by card id and review count, not the clock (the ts-fsrs default), so the
+    // interval a rating button shows is the one the card gets when it is pressed seconds later.
+    f = fsrs(generatorParameters({ request_retention: retention, enable_fuzz: true })).useStrategy(
+      StrategyMode.SEED,
+      GenSeedStrategyWithCardId('id'),
+    );
     engines.set(retention, f);
   }
   return f;
 }
 
-/** The card's state after answering with `rating` at `now`. `state` is undefined for a new card. */
-export function schedule(state: CardState | undefined, rating: Rating, now: number, retention: number): CardState {
-  const { card } = engine(retention).next(state ?? createEmptyCard(now), now, rating as Grade);
+/** The card's state after answering with `rating` at `now`. `state` is undefined for a new card. `id` seeds the fuzz. */
+export function schedule(state: CardState | undefined, rating: Rating, now: number, retention: number, id = ''): CardState {
+  const { card } = engine(retention).next(Object.assign({}, state ?? createEmptyCard(now), { id }), now, rating as Grade);
   return {
     due: card.due.getTime(),
     stability: card.stability,
@@ -85,8 +90,8 @@ export function schedule(state: CardState | undefined, rating: Rating, now: numb
 }
 
 /** Milliseconds until the card would be due again, for each rating. */
-export function previewIntervals(state: CardState | undefined, now: number, retention: number): Record<Rating, number> {
-  const ms = (r: Rating) => schedule(state, r, now, retention).due - now;
+export function previewIntervals(state: CardState | undefined, now: number, retention: number, id = ''): Record<Rating, number> {
+  const ms = (r: Rating) => schedule(state, r, now, retention, id).due - now;
   return { 1: ms(1), 2: ms(2), 3: ms(3), 4: ms(4) };
 }
 
