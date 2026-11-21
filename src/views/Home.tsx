@@ -7,7 +7,7 @@ import { deckRows, inDeck, reviewsToday, streak } from '../lib/stats';
 import type { Store } from '../store';
 import { Modal } from './Modal';
 
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 export function Home({ store }: { store: Store }) {
   const now = useNow();
@@ -265,7 +265,7 @@ function PasteDialog({ onClose, onSubmit }: { onClose: () => void; onSubmit: (fi
           Markdown
           <textarea value={text} onChange={(e) => setText(e.target.value)} rows={10} placeholder={'Capital of France? :: Paris\nWater boils at ==100 °C== at sea level.'} required />
         </label>
-        <p className="muted">Pasting again under the same deck name updates that deck.</p>
+        <p className="muted">Pasting again under the same deck name replaces that deck: cards that are not in the new text are removed.</p>
         <div className="actions">
           <button className="button primary" type="submit">
             Preview cards

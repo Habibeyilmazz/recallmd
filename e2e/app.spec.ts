@@ -281,7 +281,7 @@ test('export, erase and restore progress', async ({ page }) => {
   await expect(page.getByRole('status')).toHaveText('Import failed. This is not a recallmd backup.');
 
   await page.getByTestId('backup').setInputFiles(file);
-  await expect(page.getByRole('status')).toHaveText('Restored 14 cards and 1 reviews.');
+  await expect(page.getByRole('status')).toHaveText('Restored 14 cards and 1 review.');
   await page.reload();
   await expect(page.getByLabel('Daily goal')).toHaveValue('7');
   await page.goto('/#/');

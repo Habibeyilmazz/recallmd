@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { cleanSettings, makeBackup, parseBackup, type Settings as SettingsData } from '../lib/data';
 import { planImport } from '../lib/importer';
 import { SAMPLE, type Store } from '../store';
+import { plural } from './Home';
 
 function download(name: string, text: string) {
   const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
@@ -35,17 +36,17 @@ export function Settings({ store }: { store: Store }) {
   const exportProgress = () => {
     const now = Date.now();
     download(`recallmd-${new Date(now).toISOString().slice(0, 10)}.json`, JSON.stringify(makeBackup(data, now)));
-    setStatus(`Exported ${data.cards.length} cards and ${data.logs.length} reviews.`);
+    setStatus(`Exported ${plural(data.cards.length, 'card')} and ${plural(data.logs.length, 'review')}.`);
   };
 
   const importProgress = async (file: File) => {
     try {
       if (file.size > 100_000_000) throw new Error('This file is too large to be a recallmd backup.');
       const backup = parseBackup(await file.text());
-      const message = `Replace everything in this browser with the backup?\n\nIt holds ${backup.cards.length} cards and ${backup.logs.length} reviews. Your current ${data.cards.length} cards and ${data.logs.length} reviews will be erased.`;
+      const message = `Replace everything in this browser with the backup?\n\nIt holds ${plural(backup.cards.length, 'card')} and ${plural(backup.logs.length, 'review')}. Your current ${plural(data.cards.length, 'card')} and ${plural(data.logs.length, 'review')} will be erased.`;
       if (!confirm(message)) return;
       await store.replaceAll(backup);
-      setStatus(`Restored ${backup.cards.length} cards and ${backup.logs.length} reviews.`);
+      setStatus(`Restored ${plural(backup.cards.length, 'card')} and ${plural(backup.logs.length, 'review')}.`);
     } catch (e) {
       setStatus(`Import failed. ${e instanceof Error ? e.message : String(e)}`);
     }
