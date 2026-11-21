@@ -123,7 +123,7 @@ npm run e2e         # Playwright against the production build; run `npm run buil
 
 The end-to-end tests need Chromium once: `npx playwright install chromium`.
 
-CI runs all four on every push. `.github/workflows/deploy.yml` builds and publishes to GitHub Pages, but only when you start it by hand from the Actions tab, and only after Pages has been set to "GitHub Actions" in the repository settings.
+CI runs all four on every push. `.github/workflows/deploy.yml` builds and publishes to GitHub Pages, but only when you start it by hand from the Actions tab, and only after Pages has been set to "GitHub Actions" in the repository settings. Browsers keep data per origin, and every project site of one account shares the origin `<account>.github.io`: any other page published there can read and change this app's stored cards and progress. Host it on its own origin (a custom domain, or any static host) if other code is published under the same account.
 
 ## Limits worth knowing
 

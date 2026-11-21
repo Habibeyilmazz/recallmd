@@ -5,6 +5,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Security (round 11)
+
+Re-audited the trust boundaries (note Markdown and its HTML, dropped files and folders, backup JSON, hash routes), the workflows, the dependencies and the git history.
+
+- Fixed: after a mouse click on Show answer or a rating, focus went to the first element with the class `show` or `r3` in the review screen, and a note's HTML can carry those classes. A link in a note dressed as `<a class="r3" href="…">` took the focus meant for the Good button, so Space then did nothing and Enter opened the note's link. The lookup is now limited to the app's own button bar. End-to-end test: "a link in a note cannot take the focus meant for the rating buttons" (failed before the fix).
+- Documented: GitHub Pages project sites of one account share the origin `<account>.github.io`, so any other page published there can read this app's IndexedDB. The README now says so next to the deploy workflow.
+- Checked and fine: `npm audit` (0 vulnerabilities); zizmor 1.32 on both workflows (only naming and permission-comment notes, nothing exploitable); no tokens, keys or personal emails anywhere in git history; the only other place app code looks elements up by attribute (`[data-autofocus]` in dialogs) never contains note HTML.
+- Not done: no screen reader run, Firefox and Safari untested, the Obsidian `#flashcards` tags and end marker are on the roadmap (features, not security).
+
 ### Changed (design pass, round 10)
 
 Every page was shot from the production build at 1180px and 390px, light and dark, and on an emulated touch phone (iPhone 13). Decks, review, Stats, Settings and the import dialog held up; the Cards page did not:
