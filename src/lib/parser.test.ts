@@ -151,6 +151,10 @@ describe('cloze deletions', () => {
     expect(pairs('Use `a == b == c` to compare.\nif x == y and y == z\n====')).toEqual([]);
   });
 
+  it('does not take a setext heading underline or a row of equals signs for a highlight', () => {
+    expect(pairs('Title\n=====\n\n==========\n\nReal ==one== here')).toEqual([['Real ==[…]== here', 'Real ==one== here']]);
+  });
+
   it('a :: line wins over highlights on the same line', () => {
     expect(pairs('What is ==this==? :: a card')).toEqual([['What is ==this==?', 'a card']]);
   });

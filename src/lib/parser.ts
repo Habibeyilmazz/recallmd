@@ -41,7 +41,8 @@ const RULE = /^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/;
 const LIST_MARKER = /^\s*(?:[-*+]|\d+[.)])\s+(?:\[[ xX]\]\s+)?/;
 const QUESTION = /^Q:(?:\s|$)/;
 const ANSWER = /^A:(?:\s|$)/;
-const CLOZE = /==(?=\S)(.+?)(?<=\S)==/g;
+// The hidden text may not start or end with a space or "=", so "a == b" and a "=====" underline are not highlights.
+const CLOZE = /==(?=[^\s=])(.+?)(?<=[^\s=])==/g;
 const TAG = /(?:^|\s)#([\p{L}][\p{L}\p{N}_/-]*)/gu;
 
 /** cyrb53: fast 53-bit string hash, plenty for a personal card collection. */

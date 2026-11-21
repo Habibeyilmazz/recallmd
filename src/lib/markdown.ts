@@ -49,7 +49,7 @@ const marked = new Marked({
       level: 'inline',
       start: (src) => src.indexOf('=='),
       tokenizer(src) {
-        const m = /^==(?=\S)([^\n]+?)(?<=\S)==/.exec(src);
+        const m = /^==(?=[^\s=])([^\n]+?)(?<=[^\s=])==/.exec(src); // same rule as CLOZE in parser.ts
         if (m) return { type: 'mark', raw: m[0], tokens: this.lexer.inlineTokens(m[1]!) };
       },
       renderer(token) {
