@@ -1,0 +1,128 @@
+// Works out what an import changes, before anything is written.
+import { normalize, parseMarkdown, type Card, type ParseOptions } from './parser';
+
+export interface NoteFile {
+  path: string;
+  text: string;
+}
+
+export interface ImportPlan {
+  /** Cards to write (new and existing). */
+  upsert: Card[];
+  /** Cards that disappeared from a re-imported note. */
+  remove: string[];
+  /** Review progress to carry from a removed card to its reworded replacement: [from, to]. */
+  moves: [string, string][];
+  files: number;
+  added: number;
+  changed: number;
+  unchanged: number;
+  warnings: string[];
+}
+
+/** Dice coefficient over character bigrams, 0..1. */
+export function similarity(a: string, b: string): number {
+  const x = normalize(a);
+  const y = normalize(b);
+  if (x === y) return 1;
+  if (x.length < 2 || y.length < 2) return 0;
+  const grams = new Map<string, number>();
+  for (let i = 0; i < x.length - 1; i++) {
+    const g = x.slice(i, i + 2);
+    grams.set(g, (grams.get(g) ?? 0) + 1);
+  }
+  let shared = 0;
+  for (let i = 0; i < y.length - 1; i++) {
+    const g = y.slice(i, i + 2);
+    const n = grams.get(g) ?? 0;
+    if (n > 0) {
+      grams.set(g, n - 1);
+      shared++;
+    }
+  }
+  return (2 * shared) / (x.length + y.length - 2);
+}
+
+const clozeAnswer = (c: Card) => /==(.+?)==/s.exec(c.back)?.[1] ?? '';
+
+/** How likely `next` is `old` with its question reworded. 0 means "different card". */
+export function rewordScore(old: Card, next: Card): number {
+  if (old.kind !== next.kind) return 0;
+  const score = similarity(old.front, next.front);
+  const sameAnswer =
+    old.kind === 'cloze'
+      ? normalize(clozeAnswer(old)) === normalize(clozeAnswer(next))
+      : normalize(old.back) === normalize(next.back);
+  // A cloze that hides something else is a different card however similar the sentence.
+  if (old.kind === 'cloze' && !sameAnswer) return 0;
+  return score >= (sameAnswer ? 0.5 : 0.75) ? score : 0;
+}
+
+export function planImport(
+  existing: Card[],
+  hasProgress: (id: string) => boolean,
+  files: NoteFile[],
+  options: ParseOptions = {},
+): ImportPlan {
+  const warnings: string[] = [];
+  const incoming = new Map<string, Card>();
+  for (const file of files) {
+    const parsed = parseMarkdown(file.text, file.path, options);
+    warnings.push(...parsed.warnings);
+    for (const card of parsed.cards) {
+      const first = incoming.get(card.id);
+      if (first) warnings.push(`${card.source}:${card.line}: same question as ${first.source}:${first.line}, skipped`);
+      else incoming.set(card.id, card);
+    }
+  }
+
+  const byId = new Map(existing.map((c) => [c.id, c]));
+  const sources = new Set(files.map((f) => f.path));
+  const gone = existing.filter((c) => sources.has(c.source) && !incoming.has(c.id));
+
+  let added = 0;
+  let changed = 0;
+  let unchanged = 0;
+  const fresh: Card[] = [];
+  for (const card of incoming.values()) {
+    const old = byId.get(card.id);
+    if (!old) {
+      added++;
+      fresh.push(card);
+    } else if (old.front === card.front && old.back === card.back && old.deck === card.deck && old.tags.join() === card.tags.join()) {
+      unchanged++;
+    } else {
+      changed++;
+    }
+  }
+
+  // Reworded questions get a new id; hand the old card's progress to the closest new card.
+  const pairs: { from: string; to: string; score: number }[] = [];
+  for (const old of gone) {
+    if (!hasProgress(old.id)) continue;
+    for (const next of fresh) {
+      if (hasProgress(next.id)) continue;
+      const score = rewordScore(old, next);
+      if (score > 0) pairs.push({ from: old.id, to: next.id, score });
+    }
+  }
+  pairs.sort((a, b) => b.score - a.score);
+  const moves: [string, string][] = [];
+  const used = new Set<string>();
+  for (const p of pairs) {
+    if (used.has(p.from) || used.has(p.to)) continue;
+    used.add(p.from).add(p.to);
+    moves.push([p.from, p.to]);
+  }
+
+  return {
+    upsert: [...incoming.values()],
+    remove: gone.map((c) => c.id),
+    moves,
+    files: files.length,
+    added,
+    changed,
+    unchanged,
+    warnings,
+  };
+}
