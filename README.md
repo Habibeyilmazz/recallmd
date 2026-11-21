@@ -65,10 +65,11 @@ Card syntax inside code fences, inline code, inline math and one-line HTML comme
 - **Import** by dropping `.md`, `.markdown` or `.txt` files or a whole folder anywhere on the Decks page, by picking files or a folder, or by pasting text. Dot-folders such as `.obsidian` are skipped. A preview shows what will be added, changed and removed before anything is written.
 - **Progress survives edits.** A card's identity is a hash of its question, not its file, position or answer. Fix an answer, move or rename the note, and the card keeps its schedule. If you reword a question but keep its answer, re-importing matches the old card to the new one by similarity and carries the progress over. (Change both and it is treated as a new card.)
 - **FSRS scheduling** (via [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs)) with Again / Hard / Good / Easy. Each button shows when the card would come back. Desired retention is adjustable (70–97%).
-- **Keyboard-first review.** `Space` or `Enter` shows the answer, `1`–`4` rate it, `Space` again means Good, `Z` undoes the last answer, `Esc` goes back to the decks.
+- **Keyboard-first review.** `Space` or `Enter` shows the answer, `1`–`4` rate it, `Space` again means Good, `S` suspends the card, `Z` undoes the last answer or suspend, `Esc` goes back to the decks.
+- **Cards page.** Search every card by words from its question, answer, deck, note path or `#tag`, filter to what is due today, new or suspended, and see when each card is due. Suspend a card you do not want to review (a bad split, something you already know) and unsuspend it later: it keeps its progress, and stays suspended when you re-import or remove and re-add its note. Suspended cards are left out of reviews, the deck counts and the forecast.
 - **Daily goal, streak and stats**: reviews per day for the last 30 days, cards coming due over the next 14, true retention, and how many cards are new, learning and in review. Each chart can also be read as a table.
 - **Offline PWA.** After the first visit to a production build the app, fonts, KaTeX and the code highlighter are all cached; it can be installed and used without a connection.
-- **Your data is yours.** Cards, schedule and history are stored in IndexedDB in your browser. Settings → Export progress writes one JSON file; importing it on another browser or device restores everything.
+- **Your data is yours.** Cards, schedule, suspended cards and history are stored in IndexedDB in your browser. Settings → Export progress writes one JSON file; importing it on another browser or device restores everything.
 - Light and dark themes following the system setting, and a layout that works on a phone, with the answer buttons at the bottom of the screen.
 - **Built to be usable without a mouse or with low vision:** a skip button, visible focus everywhere, text at 4.5:1 contrast or better, 44px touch targets, and respect for the reduced-motion and forced-colours settings. This was checked in Chromium with scripts and the keyboard, not yet with a screen reader.
 
@@ -85,16 +86,17 @@ The screenshots are taken from the running app by `scripts/screenshots.mjs`, whi
 - `src/lib/parser.ts` walks a note line by line and returns cards. It is a pure function with no DOM, and has the bulk of the unit tests.
 - `src/lib/importer.ts` compares the parsed cards with what is stored and produces an import plan: cards to write, cards that disappeared from a re-imported note, and progress to move from a removed card to its reworded replacement (same answer, and a Dice similarity of at least 0.6 between the questions' character bigrams).
 - `src/lib/scheduler.ts` wraps ts-fsrs and builds the day's queue: cards in a learning step first, then reviews due before local midnight, then new cards up to the daily allowance. A card answered Again comes back in the same session.
+- `src/lib/browse.ts` filters cards for the Cards page and labels their status.
 - `src/lib/stats.ts` computes streak, retention, forecast and deck counts from the review log.
 - `src/lib/db.ts` stores cards, FSRS state, the review log and settings in IndexedDB, and announces each write to other open tabs over a `BroadcastChannel`. Removing a deck keeps its progress, so importing the same notes later restores it.
 - `src/lib/markdown.ts` renders card Markdown with marked, sanitizes the HTML with DOMPurify, and loads KaTeX and highlight.js only when a card needs them. Production builds also ship a Content-Security-Policy that forbids inline and remote scripts, and rendered notes are paint-contained so their HTML cannot draw outside the card.
-- `src/views/` holds the four screens (Decks, Review, Stats, Settings). There is no router or state library: hash routes and one React hook (`src/store.ts`).
+- `src/views/` holds the five screens (Decks, Review, Cards, Stats, Settings). There is no router or state library: hash routes and one React hook (`src/store.ts`).
 
 ## Development
 
 ```sh
 npm run typecheck   # tsc
-npm test            # unit tests (Vitest): parser, importer, scheduler, stats, storage, backups
+npm test            # unit tests (Vitest): parser, importer, scheduler, stats, card search, storage, backups
 npm run build
 npm run e2e         # Playwright against the production build; run `npm run build` first
 ```
@@ -119,7 +121,8 @@ CI runs all four on every push. `.github/workflows/deploy.yml` builds and publis
 - Re-sync a folder in one click with the File System Access API
 - Import attachments so local images show up
 - Reversed cards and the other Obsidian Spaced Repetition separators (`:::`, `?`, `??`)
-- A card browser with search, and suspending cards
+- Suspending or unsuspending every card a search finds at once
+- Showing a card's rendered Markdown on the Cards page (it lists the plain text today)
 - Merging a backup into existing data instead of replacing it
 - Optimizing FSRS parameters from your own review history
 

@@ -5,6 +5,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- A Cards page (`#/cards`, in the header): search every card by words from its question, answer, deck, note path or `#tag`, filter to due today, new or suspended, and see each card's status ("Due in 4d"). It lists the first 100 matches.
+- Suspending cards. Suspend or unsuspend from the Cards page, or press `S` (or "Suspend card") during a review; `Z` takes a suspend back like an answer. A suspended card keeps its progress, is left out of reviews, deck counts and the forecast, and stays suspended across re-imports. Stats shows how many are suspended, linking to them. Backups carry a `suspended` list; backups without one still load.
+
+### Changed
+
+- Below 26rem the header shows the app icon without its name, so the four links fit down to 320px.
+
+Earlier in this release:
+
 Four rounds of changes. The fourth was a security pass (see "Security" below). The first was an independent first-run review: a fresh clone, the README quickstart followed literally, and a read of the whole codebase. The second was a design and accessibility pass: every screen looked at in screenshots of the running app at 1180px, 390px and 320px, light and dark, and walked with the keyboard. The third was a second design pass that re-shot every screen and state (done, empty, dialogs) and found the two issues listed first under Fixed; README screenshots were regenerated and showed no visible change, so they were left as they were.
 
 ### Security
@@ -82,4 +93,5 @@ First release.
 - GitHub Pages is not enabled. The deploy workflow only runs from the Actions tab.
 - Security pass (round four), what was checked and found fine: DOMPurify blocks `javascript:` links, event handlers and scripts (e2e test); KaTeX runs with `trust: false` and its default `maxExpand`; backup import validates every field and caps files at 100 MB; dropped folders skip dot-folders and cap file size and count; `npm audit` reports nothing; no secrets in git history; both workflows have `contents: read` at the top and only the deploy job gets `pages: write`. Not fixed: marked itself is slow on a very long line of `_a_a_a…` (about 1.4 s for 40 KB), which is upstream.
 - The action SHAs in `.github/workflows/` were looked up with `gh api repos/<owner>/<action>/commits/<tag>`; update them the same way.
+- Suspension (feature round): `AppData.suspended` is a `Set` of card ids, stored whole under the `kv` key `suspended` by `db.saveSuspended`. It is never pruned, on purpose: like progress, it must survive removing and re-importing a note. Filtering happens at the callers (App for review, Home for the queue, Stats for the forecast); `countCards`/`deckRows` take the set and count suspended cards only in `total`. `store.suspend` updates memory first and reloads from storage if the write fails. Gaps the previous round listed were rechecked and are not bugs: marked's slowness is upstream, remote images loading from their server is documented under Limits, and Pages, Node 20 and other browsers are out of reach here.
 - Not done yet: see the Roadmap in the README.
