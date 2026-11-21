@@ -318,4 +318,16 @@ describe('README example', () => {
     expect(r.cards[4]!.back).toContain('print(len([1, 2, 3]))');
     expect(r.cards[0]).toMatchObject({ deck: 'Biology/Cells', tags: ['bio', 'exam'] });
   });
+
+describe('deck names', () => {
+  const deckOf = (text: string, path: string) => parseMarkdown(text, path).cards[0]!.deck;
+
+  it('never has an empty or blank segment, whatever the path or front matter says', () => {
+    expect(deckOf('q :: a', 'A//b.md')).toBe('A/b');
+    expect(deckOf('q :: a', 'x/ /y.md')).toBe('x/y');
+    expect(deckOf('---\ndeck: a//b\n---\nq :: a', 'n.md')).toBe('a/b');
+    expect(deckOf('---\ndeck: " / "\n---\nq :: a', 'n.md')).toBe('n');
+    expect(deckOf('q :: a', '  .md')).toBe('Notes');
+  });
+});
 });

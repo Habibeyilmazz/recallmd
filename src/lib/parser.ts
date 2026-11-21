@@ -98,6 +98,9 @@ function unquote(value: string): string {
   return value.trim().replace(/^(['"])(.*)\1$/, '$2').replace(/^#/, '').trim();
 }
 
+/** A deck path with no empty or blank folder names, which would show as nameless rows. */
+const cleanDeck = (path: string) => path.split('/').map((p) => p.trim()).filter(Boolean).join('/');
+
 /** Reads only what recallmd uses from YAML front matter: `tags` and `deck`. */
 function readFrontMatter(lines: string[]): { tags: string[]; deck?: string } {
   const tags: string[] = [];
@@ -107,7 +110,7 @@ function readFrontMatter(lines: string[]): { tags: string[]; deck?: string } {
     if (!m) continue;
     const key = m[1]!.toLowerCase();
     const value = m[2]!.trim();
-    if (key === 'deck' && value) deck = unquote(value).replace(/^\/+|\/+$/g, '');
+    if (key === 'deck' && value) deck = cleanDeck(unquote(value));
     if (key === 'tags' || key === 'tag') {
       if (value) {
         tags.push(...value.replace(/^\[|\]$/g, '').split(/[,\s]+/));
@@ -280,7 +283,7 @@ export function parseMarkdown(text: string, source: string, options: ParseOption
     drafts.sort((a, b) => a.line - b.line);
   }
 
-  const deck = meta.deck ?? (source.replace(/\.(md|markdown|txt)$/i, '').replace(/^\/+/, '') || 'Notes');
+  const deck = meta.deck ?? (cleanDeck(source.replace(/\.(md|markdown|txt)$/i, '')) || 'Notes');
   const cards: Card[] = [];
   const ids = new Set<string>();
   for (const d of drafts) {

@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - A Cards page (`#/cards`, in the header): search every card by words from its question, answer, deck, note path or `#tag`, filter to due today, new or suspended, and see each card's status ("Due in 4d"). It lists the first 100 matches.
 - Suspending cards. Suspend or unsuspend from the Cards page, or press `S` (or "Suspend card") during a review; `Z` takes a suspend back like an answer. A suspended card keeps its progress, is left out of reviews, deck counts and the forecast, and stays suspended across re-imports. Stats shows how many are suspended, linking to them. Backups carry a `suspended` list; backups without one still load.
 
+### Fixed
+
+- Reliability pass (fuzzed the parser with 40,000 random notes, ran the unit tests in five time zones, and timed big imports; the parser and time handling held up). A note rewritten wholesale froze the tab while progress was matched to reworded questions: 3000 reworded cards took 2.7 s, 3000 with the same answer 36 s. Candidates are now grouped by answer and comparisons are capped at 200,000 (a warning says how many reviewed cards were not matched; their progress is kept). Unit tests time both cases.
+- A deck name with an empty or blank part (`a//b` in a path, `deck:` front matter or the paste dialog) made a nameless row on the Decks page. Such parts are now dropped.
+- Checked and not a bug: the Cards page shows each card as one plain line on purpose, and the first-run sample import is idempotent when two tabs open at once. Firefox and Safari remain untested.
+
 ### Changed
 
 - Below 26rem the header shows the app icon without its name, so the four links fit down to 320px.
