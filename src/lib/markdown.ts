@@ -34,6 +34,11 @@ const marked = new Marked({
       const body = hljs && language && hljs.getLanguage(language) ? hljs.highlight(text, { language }).value : escapeHtml(text);
       return `<pre><code>${body}</code></pre>`;
     },
+    // Only web images can be shown: files next to a note (vault attachments) are not imported.
+    image({ href, text }) {
+      if (!/^https?:\/\//i.test(href)) return `<em>[image: ${escapeHtml(text || href)}]</em>`;
+      return `<img src="${escapeHtml(href)}" alt="${escapeHtml(text)}">`;
+    },
   },
   extensions: [
     {
@@ -76,14 +81,18 @@ const marked = new Marked({
     },
     {
       // Obsidian [[Page]] and [[Page|label]] links: there is no page to go to, so show the label.
+      // ![[file]] embeds are not imported either, so they are named instead of shown.
       name: 'wikilink',
       level: 'inline',
-      start: (src) => src.indexOf('[['),
-      tokenizer(src) {
-        const m = /^\[\[([^\]|\n]+)(?:\|([^\]\n]+))?\]\]/.exec(src);
-        if (m) return { type: 'wikilink', raw: m[0], text: m[2] ?? m[1]! };
+      start: (src) => {
+        const i = src.search(/!?\[\[/);
+        return i < 0 ? undefined : i;
       },
-      renderer: (token) => escapeHtml(token.text),
+      tokenizer(src) {
+        const m = /^(!?)\[\[([^\]|\n]+)(?:\|([^\]\n]+))?\]\]/.exec(src);
+        if (m) return { type: 'wikilink', raw: m[0], text: m[1] ? m[2]! : (m[3] ?? m[2]!), embed: !!m[1] };
+      },
+      renderer: (token) => (token.embed ? `<em>[embed: ${escapeHtml(token.text)}]</em>` : escapeHtml(token.text)),
     },
   ],
 });

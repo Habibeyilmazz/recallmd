@@ -33,6 +33,9 @@ function open(): Promise<IDBDatabase> {
 async function write<T>(stores: Store[], work: (s: Record<Store, IDBObjectStore>) => T): Promise<T> {
   const tx = (await open()).transaction(stores, 'readwrite');
   const result = work(Object.fromEntries(stores.map((n) => [n, tx.objectStore(n)])) as Record<Store, IDBObjectStore>);
+  // Commit now instead of after the requests' success events: a review answered just
+  // before the tab is closed or reloaded would otherwise be aborted and lost.
+  tx.commit();
   await new Promise<void>((resolve, reject) => {
     tx.oncomplete = () => resolve();
     tx.onerror = tx.onabort = () => reject(tx.error);

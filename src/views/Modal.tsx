@@ -6,7 +6,10 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
   const id = useId();
   useEffect(() => {
     const dialog = ref.current;
-    if (dialog && !dialog.open) dialog.showModal();
+    if (!dialog || dialog.open) return;
+    dialog.showModal();
+    // React does not render the autofocus attribute, so the main action is marked with data-autofocus.
+    dialog.querySelector<HTMLElement>('[data-autofocus]')?.focus();
   }, []);
   return (
     <dialog ref={ref} onClose={onClose} aria-labelledby={id}>

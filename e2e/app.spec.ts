@@ -60,6 +60,16 @@ test('review with the keyboard: reveal, rate, undo', async ({ page }) => {
   await expect(page.getByText('1 of 20 reviews')).toBeVisible();
 });
 
+test('an answer given just before the page is reloaded is not lost', async ({ page }) => {
+  await open(page);
+  await page.reload(); // now served by the service worker, so the next load is fast
+  await study(page, 'Study now');
+  await page.keyboard.press('Space');
+  await page.keyboard.press('3');
+  await page.goto('/'); // a full reload, straight after the key press
+  await expect(page.getByText('1 of 20 reviews')).toBeVisible();
+});
+
 test('a cloze card hides one highlight and reveals it in place', async ({ page }) => {
   await open(page);
   const dialog = await importFiles(page, [md('cloze.md', 'Plant cells have a ==cell wall== made of ==cellulose==.')]);
@@ -83,6 +93,7 @@ test('code and math render, and note HTML cannot run scripts', async ({ page }) 
     '```',
     '<img src="x" onerror="window.pwned = 1"><script>window.pwned = 2</script>',
     '[link](javascript:window.pwned=3)',
+    'See [[Geometry|the geometry note]], ![[diagram.png]] and ![local](attachments/a.png).',
   ].join('\n');
   const dialog = await importFiles(page, [md('render.md', note)]);
   await dialog.getByRole('button', { name: /^Import/ }).click();
@@ -94,6 +105,8 @@ test('code and math render, and note HTML cannot run scripts', async ({ page }) 
   await expect(card.locator('script')).toHaveCount(0);
   await expect(card.getByText('link')).not.toHaveAttribute('href', /javascript/);
   expect(await page.evaluate(() => (window as { pwned?: number }).pwned)).toBeUndefined();
+  // Obsidian links show their label; files that were not imported are named, not shown broken.
+  await expect(card).toContainText('See the geometry note, [embed: diagram.png] and [image: local].');
 });
 
 test('importing a folder builds decks from folders and tags, and skips non-notes', async ({ page }) => {

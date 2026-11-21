@@ -30,7 +30,7 @@ export function Home({ store }: { store: Store }) {
         <div>
           <h1 id="today-h">{queue.length ? `${plural(queue.length, 'card')} to study today` : cards.length ? 'Nothing left to study today' : 'No cards yet'}</h1>
           <p className="muted">
-            {queue.length > 0 && `${plural(queue.length - fresh, 'review')} and ${fresh} new. `}
+            {queue.length > 0 && `${[queue.length > fresh && plural(queue.length - fresh, 'review'), fresh > 0 && `${fresh} new`].filter(Boolean).join(' and ')}. `}
             {days > 0 ? `${plural(days, 'day')} in a row.` : 'Review today to start a streak.'}
           </p>
         </div>
@@ -225,7 +225,7 @@ lists and math, up to the next blank line`}</pre>
           )}
           <div className="actions">
             {plan.upsert.length > 0 && (
-              <button className="button primary" onClick={() => void confirmImport()}>
+              <button className="button primary" data-autofocus onClick={() => void confirmImport()}>
                 Import {plural(plan.upsert.length, 'card')}
               </button>
             )}

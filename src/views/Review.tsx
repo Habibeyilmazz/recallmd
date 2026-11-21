@@ -110,7 +110,7 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
         <section className="sheet done">
           <h2>{session.answered ? 'Done for today' : cards.length ? 'Nothing is due right now' : 'This deck has no cards'}</h2>
           <p>
-            {session.answered > 0 && `You answered ${session.answered} ${session.answered === 1 ? 'card' : 'cards'}. `}
+            {session.answered > 0 && `${session.answered} ${session.answered === 1 ? 'review' : 'reviews'} done. `}
             {cards.length > 0 && 'Cards come back when FSRS expects you to be close to forgetting them.'}
           </p>
           <div className="actions">
