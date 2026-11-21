@@ -155,6 +155,24 @@ test('code and math render, and note HTML cannot run scripts', async ({ page }) 
   await expect(card).toContainText('See the geometry note, [embed: diagram.png] and [image: local].');
 });
 
+test('note HTML cannot draw over the app outside its card', async ({ page }) => {
+  await open(page);
+  const overlay = '<div class="evil" style="position:fixed;inset:0;z-index:99999;background:red">Session expired, <a href="https://example.test">sign in again</a></div>';
+  const dialog = await importFiles(page, [md('overlay.md', `Overlay check :: ${overlay}`)]);
+  await dialog.getByRole('button', { name: /^Import/ }).click();
+  const card = await study(page, /^overlay/);
+  await page.keyboard.press('Space');
+  await expect(card.locator('.evil')).toBeVisible();
+  await page.waitForTimeout(500); // past the answer's fade-in, which hides the problem while it runs
+  const cardBox = (await card.boundingBox())!;
+  const evilBox = (await card.locator('.evil').boundingBox())!;
+  expect(evilBox.y).toBeGreaterThanOrEqual(cardBox.y);
+  expect(evilBox.y + evilBox.height).toBeLessThanOrEqual(cardBox.y + cardBox.height + 1);
+  // The rating buttons below the card still take clicks.
+  await page.getByRole('button', { name: /^Easy/ }).click({ timeout: 2000 });
+  await expect(page.getByRole('button', { name: /^Easy/ })).toBeHidden();
+});
+
 test('importing a folder builds decks from folders and tags, and skips non-notes', async ({ page }) => {
   await open(page);
   await page.getByTestId('folder').setInputFiles(VAULT);

@@ -626,6 +626,11 @@ input[type='checkbox'] {
 /* Rendered note Markdown */
 .md {
   overflow-wrap: anywhere; /* a long URL breaks instead of widening the page */
+  /* Note HTML keeps its style attributes (KaTeX needs them). Containment stops a fixed or
+     absolute box in a note from covering the rest of the app; the padding leaves room for focus rings. */
+  contain: paint;
+  padding: 6px;
+  margin: -6px;
 }
 .md > :first-child {
   margin-top: 0;
