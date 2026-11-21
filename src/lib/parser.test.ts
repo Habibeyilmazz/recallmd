@@ -57,8 +57,8 @@ describe('one-line cards', () => {
     expect(pairs('q :: a :: b')).toEqual([['q', 'a :: b']]);
   });
 
-  it('does not treat ":::" as a separator', () => {
-    expect(pairs('q ::: a')).toEqual([]);
+  it('does not treat "::::" or a Pandoc ":::" div fence as a separator', () => {
+    expect(pairs('q :::: a\n::: warning\ntext\n:::')).toEqual([]);
   });
 
   it('warns when a side is empty', () => {
@@ -82,6 +82,70 @@ describe('one-line cards', () => {
 
   it('handles CRLF line endings and a BOM', () => {
     expect(pairs('\uFEFFq :: a\r\nq2 :: a2\r\n')).toEqual([['q', 'a'], ['q2', 'a2']]);
+  });
+});
+
+describe('Obsidian Spaced Repetition syntax', () => {
+  it('makes " ::: " a card both ways', () => {
+    expect(pairs('- Capital of France ::: Paris')).toEqual([['Capital of France', 'Paris'], ['Paris', 'Capital of France']]);
+  });
+
+  it('gives each direction its own identity and line', () => {
+    const [a, b] = parse('\nq ::: a').cards;
+    expect(a!.id).toBe(cardId('basic', 'q'));
+    expect(b!.id).toBe(cardId('basic', 'a'));
+    expect([a!.line, b!.line]).toEqual([2, 2]);
+  });
+
+  it('keeps the progress of a "::" card that becomes ":::"', () => {
+    expect(parse('q ::: a').cards[0]!.id).toBe(parse('q :: a').cards[0]!.id);
+  });
+
+  it('warns when a side of ":::" is empty', () => {
+    expect(parse('q ::: ').warnings).toEqual(['notes/test.md:1: ":::" needs text on both sides']);
+  });
+
+  it('skips the reversed card of a symmetric pair as a duplicate', () => {
+    const r = parse('same ::: same');
+    expect(r.cards).toHaveLength(1);
+    expect(r.warnings).toEqual(['notes/test.md:1: duplicate question skipped']);
+  });
+
+  it('reads a multi-line card split by a "?" line', () => {
+    expect(pairs('Intro.\n\nWhat are the\nthree states?\n?\nSolid\nLiquid\n\nGas is not part of it')).toEqual([
+      ['What are the\nthree states?', 'Solid\nLiquid'],
+    ]);
+  });
+
+  it('makes a "??" card both ways', () => {
+    expect(pairs('front\n??\nback')).toEqual([['front', 'back'], ['back', 'front']]);
+  });
+
+  it('lets the answer hold a code fence with blank lines, and a list question', () => {
+    expect(pairs('- step one\n- step two\n?\n```js\na();\n\nb();\n```\n\nafter ==x==')).toEqual([
+      ['- step one\n- step two', '```js\na();\n\nb();\n```'],
+      ['after [x]'.replace('[x]', '==[…]=='), 'after ==x=='],
+    ]);
+  });
+
+  it('warns about a "?" with no answer', () => {
+    const r = parse('q\n?\n\nnext ==c==');
+    expect(r.cards.map((c) => c.front)).toEqual(['next ==[…]==']);
+    expect(r.warnings).toEqual(['notes/test.md:2: "?" needs an answer on the next line']);
+  });
+
+  it('leaves a "?" at the start of a paragraph, inside a fence or in a sentence alone', () => {
+    expect(pairs('?\nnot a card\n\n```\nq\n?\na\n```\n\nWhy? Because.')).toEqual([]);
+  });
+
+  it('drops the scheduling comment the plugin writes after a card', () => {
+    expect(pairs('q\n?\na\n<!--SR:!2026-01-01,3,250-->')).toEqual([['q', 'a']]);
+  });
+
+  it('stays linear on a long list with no "?" line', () => {
+    const started = performance.now();
+    parse('- item\n'.repeat(100_000));
+    expect(performance.now() - started).toBeLessThan(1000);
   });
 });
 

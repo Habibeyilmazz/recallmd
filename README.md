@@ -56,6 +56,8 @@ print(len([1, 2, 3]))
 | `Question :: Answer` | One-line card. The `::` needs a space on each side, so `std::vector` is left alone. Works in list items too. |
 | `==highlight==` | Cloze deletion. Each highlight in a paragraph or list item becomes its own card with that part hidden. |
 | `Q:` … `A:` | Multi-line card. The answer runs to the next blank line; code fences inside it may contain blank lines. |
+| `Question ::: Answer` | Two cards: one each way. |
+| Question, a line of `?`, answer | Multi-line card, as written for the Obsidian Spaced Repetition plugin. The question is the paragraph above the `?` line; the answer runs to the next blank line outside a code fence. A line of `??` makes it both ways. |
 | `## Heading` + text | Optional (tick "turn headings into questions" in the import preview). The heading path is the question and the section text is the answer. |
 
 Card syntax inside code fences, inline code, inline math and one-line HTML comments is ignored. Answers and questions are rendered as Markdown, with syntax-highlighted code and KaTeX math (`$inline$` and `$$block$$`).
@@ -93,7 +95,7 @@ The screenshots are taken from the running app by `scripts/screenshots.mjs`, whi
 | Scheduler | FSRS, default parameters | FSRS or SM-2, parameter optimizer | SM-2 variant |
 | Needs install or account | Neither (a web page) | Desktop app; AnkiWeb for sync | Obsidian |
 | Sync between devices | None; export and import a JSON file | AnkiWeb and mobile apps | Whatever syncs your vault |
-| Card types, add-ons, media | Three text syntaxes, no media import | Many note types, large add-on ecosystem, images and audio | Cloze, `::` and multi-line cards |
+| Card types, add-ons, media | Text cards (`::`, `:::`, `?`, `??`, `Q:`/`A:`, cloze), no media import | Many note types, large add-on ecosystem, images and audio | Cloze, `::` and multi-line cards |
 
 Use Anki if you need sync, media, add-ons or a tuned scheduler; it is far more mature. Use the Obsidian plugin if you live inside Obsidian and want to review there. recallmd is for when you want to review any Markdown notes, from any editor, in a browser tab without installing anything. It reads the cards you already wrote; it does not edit your notes. This table is from the projects' public descriptions, so check their docs for the details.
 
@@ -136,7 +138,7 @@ CI runs all four on every push. `.github/workflows/deploy.yml` builds and publis
 
 - Re-sync a folder in one click with the File System Access API
 - Import attachments so local images show up
-- Reversed cards and the other Obsidian Spaced Repetition separators (`:::`, `?`, `??`)
+- The Obsidian Spaced Repetition plugin's `#flashcards` deck tags and its multi-line end marker
 - Suspending or unsuspending every card a search finds at once
 - Showing a card's rendered Markdown on the Cards page (it lists the plain text today)
 - Merging a backup into existing data instead of replacing it

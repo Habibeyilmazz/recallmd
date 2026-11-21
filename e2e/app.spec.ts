@@ -314,6 +314,28 @@ test('pasting text, heading cards, and an import with nothing in it', async ({ p
   await expect(await study(page, /^Chemistry/)).toContainText('What is a mole?');
 });
 
+test('a note written for the Obsidian Spaced Repetition plugin', async ({ page }) => {
+  await open(page);
+  const note = 'Capital of France ::: Paris\n\nName the noble gases\nof period 2 and 3\n?\nNeon\nArgon\n<!--SR:!2026-01-01,3,250-->\n';
+  const dialog = await importFiles(page, [md('obsidian.md', note)]);
+  await dialog.getByRole('button', { name: 'Import 3 cards' }).click();
+  const card = await study(page, /^obsidian/);
+  await expect(card).toContainText('Capital of France');
+  await page.keyboard.press('Space');
+  await expect(card).toContainText('Paris');
+  await page.keyboard.press('3');
+  // The reversed card asks the other way round.
+  await expect(card).toContainText('Paris');
+  await expect(card).not.toContainText('Capital of France');
+  await page.keyboard.press('Space');
+  await expect(card).toContainText('Capital of France');
+  await page.keyboard.press('3');
+  await expect(card).toContainText('Name the noble gases');
+  await page.keyboard.press('Space');
+  await expect(card).toContainText('Argon');
+  await expect(card).not.toContainText('SR:');
+});
+
 test('scheduling: an Easy card leaves today and comes back when due', async ({ page }) => {
   await page.clock.setFixedTime(new Date(2026, 0, 10, 9, 0));
   await open(page);

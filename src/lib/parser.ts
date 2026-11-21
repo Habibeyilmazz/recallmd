@@ -41,6 +41,8 @@ const RULE = /^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/;
 const LIST_MARKER = /^\s*(?:[-*+]|\d+[.)])\s+(?:\[[ xX]\]\s+)?/;
 const QUESTION = /^Q:(?:\s|$)/;
 const ANSWER = /^A:(?:\s|$)/;
+/** Obsidian Spaced Repetition's multi-line separator: a line of `?`, or `??` for a card both ways. */
+const SR_SEPARATOR = /^\s*(\?\??)\s*$/;
 // The hidden text may not start or end with a space or "=", so "a == b" and a "=====" underline are not highlights.
 const CLOZE = /==(?=[^\s=])(.+?)(?<=[^\s=])==/g;
 const TAG = /(?:^|\s)#([\p{L}][\p{L}\p{N}_/-]*)/gu;
@@ -83,10 +85,10 @@ function mask(line: string): string {
   return line.replace(INERT, (m) => '\0'.repeat(m.length));
 }
 
-/** Index of the first " :: " separator outside code and math, or -1. */
-function separatorIndex(line: string): number {
-  const m = /\s::(?=\s)/.exec(mask(line));
-  return m ? m.index : -1;
+/** The first " :: " (or " ::: ", which also makes the reversed card) outside code and math. */
+function separator(line: string): { index: number; length: number } | undefined {
+  const m = /\s(:::?)(?=\s)/.exec(mask(line));
+  return m ? { index: m.index, length: m[0].length } : undefined;
 }
 
 function closesFence(line: string, open: string): boolean {
@@ -208,6 +210,7 @@ export function parseMarkdown(text: string, source: string, options: ParseOption
   }
   const sections: { front: string; line: number; start: number; end: number }[] = [];
   const trail: { level: number; text: string }[] = [];
+  let noSeparatorBefore = 0;
 
   while (i < lines.length) {
     const line = lines[i]!;
@@ -248,13 +251,30 @@ export function parseMarkdown(text: string, source: string, options: ParseOption
       continue;
     }
 
-    const sep = separatorIndex(line);
-    if (sep >= 0) {
-      const front = line.slice(0, sep).replace(LIST_MARKER, '').trim();
-      const back = line.slice(sep + 3).trim();
-      if (front && back) drafts.push({ kind: 'basic', key: front, front, back, line: i + 1 });
-      else warnings.push(`${source}:${i + 1}: "::" needs text on both sides`);
+    const sep = separator(line);
+    if (sep) {
+      const front = line.slice(0, sep.index).replace(LIST_MARKER, '').trim();
+      const back = line.slice(sep.index + sep.length).trim();
+      const both = sep.length === 4;
+      if (front && back) drafts.push(...basic(front, back, both, i + 1));
+      else warnings.push(`${source}:${i + 1}: "${both ? ':::' : '::'}" needs text on both sides`);
       i++;
+      continue;
+    }
+
+    // Obsidian Spaced Repetition multi-line card: the paragraph above a `?` line asks, the lines below answer.
+    // Rescanning a paragraph already known to have no `?` line would be quadratic on a long list.
+    let q = i + 1;
+    if (q < noSeparatorBefore) q = noSeparatorBefore;
+    else while (q < lines.length && lines[q]!.trim() && !SR_SEPARATOR.test(lines[q]!) && !FENCE.test(lines[q]!) && !HEADING.test(lines[q]!)) q++;
+    const srSep = q < lines.length ? SR_SEPARATOR.exec(lines[q]!) : null;
+    if (!srSep) noSeparatorBefore = q;
+    if (srSep) {
+      const front = lines.slice(i, q).join('\n').trim();
+      const answer = readAnswer(lines, q + 1, '');
+      if (answer.text) drafts.push(...basic(front, answer.text, srSep[1] === '??', i + 1));
+      else warnings.push(`${source}:${q + 1}: "${srSep[1]}" needs an answer on the next line`);
+      i = answer.next;
       continue;
     }
 
@@ -263,7 +283,7 @@ export function parseMarkdown(text: string, source: string, options: ParseOption
     while (j < lines.length) {
       const next = lines[j]!;
       if (!next.trim() || FENCE.test(next) || HEADING.test(next) || QUESTION.test(next) || RULE.test(next)) break;
-      if (LIST_MARKER.test(next) || separatorIndex(next) >= 0) break;
+      if (LIST_MARKER.test(next) || separator(next)) break;
       j++;
     }
     const unit = [line.replace(LIST_MARKER, ''), ...lines.slice(i + 1, j)].join('\n').trim();
@@ -318,9 +338,17 @@ function readQuestionBlock(lines: string[], start: number): { front: string; bac
   }
   if (j >= lines.length) return '"Q:" without a matching "A:"';
 
-  const back = [lines[j]!.slice(2)];
-  fence = undefined;
-  let k = j + 1;
+  const answer = readAnswer(lines, j + 1, lines[j]!.slice(2));
+  const q = front.join('\n').trim();
+  if (!q || !answer.text) return '"Q:" and "A:" both need text';
+  return { front: q, back: answer.text, next: answer.next };
+}
+
+/** Reads an answer from `start` to the first blank line outside a code fence. */
+function readAnswer(lines: string[], start: number, first: string): { text: string; next: number } {
+  const back = [first];
+  let fence: string | undefined;
+  let k = start;
   for (; k < lines.length; k++) {
     const l = lines[k]!;
     if (fence) {
@@ -328,12 +356,15 @@ function readQuestionBlock(lines: string[], start: number): { front: string; bac
     } else if (FENCE.test(l)) {
       fence = FENCE.exec(l)![1];
     } else if (!l.trim() || QUESTION.test(l) || HEADING.test(l) || RULE.test(l)) {
-      break; // the answer ends at the first blank line outside a code fence
+      break;
     }
     back.push(l);
   }
-  const q = front.join('\n').trim();
-  const a = back.join('\n').trim();
-  if (!q || !a) return '"Q:" and "A:" both need text';
-  return { front: q, back: a, next: k };
+  return { text: back.join('\n').trim(), next: k };
+}
+
+/** A question/answer pair, plus the reversed card when it goes both ways. */
+function basic(front: string, back: string, both: boolean, line: number): Draft[] {
+  const card: Draft = { kind: 'basic', key: front, front, back, line };
+  return both ? [card, { kind: 'basic', key: back, front: back, back: front, line }] : [card];
 }
