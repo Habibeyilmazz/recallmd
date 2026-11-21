@@ -105,7 +105,7 @@ CI runs all four on every push. `.github/workflows/deploy.yml` builds and publis
 ## Limits worth knowing
 
 - There is no sync. Data lives in one browser profile; use Export progress to back it up or move it.
-- Several tabs share one set of data and tell each other about every change, so a card is always scheduled from its latest saved state. A review session's list of cards is fixed when the session starts, though: a card you answer in one tab can still come up in a session that was already open in another.
+- Several tabs share one set of data and tell each other about every change: a card you answer in one tab leaves a review session that is open in another. Cards that became due or were imported after a session started join it only when you start it again.
 - The browser cannot watch your files. After editing notes, import them again (the preview shows what changed).
 - Only text is imported. Local images and Obsidian `![[embeds]]` are shown as a name, not the file. Images linked by `http(s)` URL are loaded from their server when the card is shown.
 - Picking or dropping a folder depends on browser support; on most phones you can only pick files or paste text.

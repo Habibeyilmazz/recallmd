@@ -73,20 +73,22 @@ test('an answer given just before the page is reloaded is not lost', async ({ pa
   await expect(page.getByText('1 of 20 reviews')).toBeVisible();
 });
 
-test('a second tab keeps up with the first, and schedules from what the first one saved', async ({ page, context }) => {
+test('a second tab keeps up with the first: a card answered there leaves a session that was already open', async ({ page, context }) => {
   await open(page);
   const other = await context.newPage();
   await open(other);
   const otherCard = await study(other, 'Study now'); // both tabs now hold the same first card
+  await other.keyboard.press('Space');
+  await expect(otherCard).toContainText('Two colons'); // and the other one is looking at its answer
   const card = await study(page, 'Study now');
   await page.keyboard.press('Space');
   await page.keyboard.press('4'); // Easy: the card is in review, due days from now
   await expect(card).toContainText('Which key shows the answer');
 
-  // The other tab was never reloaded or brought to the front, but must not rate the card as if it were new.
-  await expect(otherCard).toContainText('Which two characters');
-  await other.keyboard.press('Space');
-  await expect(other.getByRole('button', { name: /Good/ }).locator('.when')).toHaveText(/^\d+d$/);
+  // The other tab was never reloaded or brought to the front, but must not ask for that card a second time.
+  await expect(otherCard).toContainText('Which key shows the answer');
+  await expect(otherCard).not.toContainText('Enter works too'); // the next card starts with its answer hidden
+  await expect(other.getByText('9 to go')).toBeVisible();
   await other.keyboard.press('Escape');
   await expect(other.getByRole('heading', { level: 1 })).toHaveText('9 cards to study today');
 });

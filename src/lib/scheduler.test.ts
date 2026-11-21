@@ -3,7 +3,7 @@ import type { Card } from './parser';
 import {
   DAY, LEARNING, NEW, RELEARNING, REVIEW,
   afterAnswer, buildQueue, formatInterval, newSeenToday, pickNext, previewIntervals, schedule,
-  startOfDay, startOfNextDay,
+  startOfDay, startOfNextDay, syncQueue,
   type CardState, type QueueItem, type Rating, type ReviewLog,
 } from './scheduler';
 
@@ -271,5 +271,42 @@ describe('afterAnswer', () => {
     expect(states.size).toBe(4);
     for (const s of states.values()) expect(s.due).toBeGreaterThanOrEqual(startOfNextDay(NOON));
     expect(buildQueue(cards, states, now, 10)).toEqual([]);
+  });
+});
+
+describe('syncQueue', () => {
+  const cards = ['new', 'due', 'learn'].map(card);
+  const dueState = { ...review([3, 3]), due: NOON - DAY };
+  const states = new Map<string, CardState>([
+    ['due', dueState],
+    ['learn', schedule(undefined, 1, NOON - MIN, R)],
+  ]);
+  const queue = buildQueue(cards, states, NOON, 10);
+  const all = () => true;
+
+  it('leaves a queue alone when nothing changed', () => {
+    expect(queue).toHaveLength(3);
+    expect(syncQueue(queue, states, all, NOON)).toEqual(queue);
+  });
+
+  it('keeps a card this session answered Again, as afterAnswer queued it', () => {
+    const next = schedule(undefined, 1, NOON, R);
+    const after = afterAnswer(queue, 'new', next, NOON);
+    expect(syncQueue(after, new Map(states).set('new', next), all, NOON)).toEqual(after);
+  });
+
+  it('drops cards another tab answered into a later day', () => {
+    const elsewhere = new Map(states).set('new', schedule(undefined, 4, NOON, R)).set('due', schedule(dueState, 3, NOON, R));
+    expect(syncQueue(queue, elsewhere, all, NOON).map((q) => q.id)).toEqual(['learn']);
+  });
+
+  it('moves a new card another tab answered Again into its learning step', () => {
+    const again = schedule(undefined, 1, NOON, R);
+    const synced = syncQueue(queue, new Map(states).set('new', again), all, NOON);
+    expect(synced.find((q) => q.id === 'new')).toEqual({ id: 'new', due: again.due, learning: true });
+  });
+
+  it('drops cards that no longer exist', () => {
+    expect(syncQueue(queue, states, (id) => id !== 'due', NOON).map((q) => q.id)).toEqual(['learn', 'new']);
   });
 });

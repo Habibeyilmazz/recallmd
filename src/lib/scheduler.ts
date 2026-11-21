@@ -152,4 +152,25 @@ export function afterAnswer(queue: QueueItem[], id: string, next: CardState, now
   return next.due < startOfNextDay(now) ? [...rest, { id, due: next.due, learning: true }] : rest;
 }
 
+/**
+ * A session's queue brought up to date with the stored states, which another tab may have
+ * changed since the session started: cards answered into a later day or removed elsewhere
+ * leave, and cards still due today take their new due time.
+ */
+export function syncQueue(
+  queue: QueueItem[],
+  states: ReadonlyMap<string, CardState>,
+  exists: (id: string) => boolean,
+  now: number,
+): QueueItem[] {
+  const midnight = startOfNextDay(now);
+  return queue.flatMap((q) => {
+    if (!exists(q.id)) return [];
+    const s = states.get(q.id);
+    if (!s || s.state === NEW) return [q];
+    if (s.due >= midnight) return [];
+    return [{ id: q.id, due: s.due, learning: q.learning || s.state !== REVIEW }];
+  });
+}
+
 export { DAY };

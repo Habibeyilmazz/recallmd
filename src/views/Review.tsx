@@ -2,7 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import type { Card } from '../lib/parser';
 import {
-  afterAnswer, buildQueue, formatInterval, newSeenToday, pickNext, previewIntervals,
+  afterAnswer, buildQueue, formatInterval, newSeenToday, pickNext, previewIntervals, syncQueue,
   type QueueItem, type Rating,
 } from '../lib/scheduler';
 import type { Store } from '../store';
@@ -20,28 +20,34 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
   const { states, logs, settings } = store.data;
   const byId = useMemo(() => new Map(cards.map((c) => [c.id, c])), [cards]);
 
-  // The session is fixed when it starts; answers change it through afterAnswer.
+  // The session's cards are chosen when it starts; answers change it through afterAnswer.
   const [session, setSession] = useState(() => {
     const now = Date.now();
     const queue = buildQueue(cards, states, now, Math.max(0, settings.newPerDay - newSeenToday(logs, now)));
     return { queue, current: pickNext(queue, now)?.id, answered: 0, total: queue.length };
   });
-  const [revealed, setRevealed] = useState(false);
+  // The id of the card whose answer is showing, so a card swapped in from outside starts hidden.
+  const [revealedId, setRevealedId] = useState<string>();
   const undo = useRef<{ session: typeof session; run: () => void } | undefined>(undefined);
   const [canUndo, setCanUndo] = useState(false);
 
-  const card = session.current ? byId.get(session.current) : undefined;
+  // Another tab may have answered or removed some of this session's cards since it started.
+  const queue = syncQueue(session.queue, states, (id) => byId.has(id), Date.now());
+  const current = queue.some((q) => q.id === session.current) ? session.current : pickNext(queue, Date.now())?.id;
+  const card = current ? byId.get(current) : undefined;
+  const revealed = !!card && revealedId === card.id;
+  const reveal = () => setRevealedId(card?.id);
   const newLeft = cards.filter((c) => !states.has(c.id)).length;
 
   const rate = (rating: Rating) => {
     if (!card || !revealed) return;
     const now = Date.now();
     const { next, undo: run } = store.answer(card.id, rating, now);
-    const queue = afterAnswer(session.queue, card.id, next, now);
+    const rest = afterAnswer(queue, card.id, next, now);
     undo.current = { session, run };
     setCanUndo(true);
-    setSession({ ...session, queue, current: pickNext(queue, now)?.id, answered: session.answered + 1 });
-    setRevealed(false);
+    setSession({ ...session, queue: rest, current: pickNext(rest, now)?.id, answered: session.answered + 1 });
+    setRevealedId(undefined);
   };
 
   const takeBack = () => {
@@ -51,17 +57,17 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
     setCanUndo(false);
     last.run();
     setSession(last.session);
-    setRevealed(false);
+    setRevealedId(undefined);
   };
 
   const learnMore = () => {
-    const queue: QueueItem[] = buildQueue(cards, states, Date.now(), MORE);
-    setSession({ queue, current: pickNext(queue, Date.now())?.id, answered: session.answered, total: session.total + queue.length });
+    const more: QueueItem[] = buildQueue(cards, states, Date.now(), MORE);
+    setSession({ queue: more, current: pickNext(more, Date.now())?.id, answered: session.answered, total: session.total + more.length });
   };
 
   // Keyboard-first: the handler reads the latest state through a ref, so it is attached once.
-  const keys = useRef({ rate, takeBack, revealed, card });
-  keys.current = { rate, takeBack, revealed, card };
+  const keys = useRef({ rate, takeBack, reveal, revealed, card });
+  keys.current = { rate, takeBack, reveal, revealed, card };
   // Layout effect: the keys work from the first frame the card is on screen.
   useLayoutEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -82,7 +88,7 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
           if (/^(BUTTON|A|SUMMARY)$/.test(target.tagName)) return;
           e.preventDefault();
           if (k.revealed) k.rate(3);
-          else setRevealed(true);
+          else k.reveal();
         } else if (k.revealed && e.key >= '1' && e.key <= '4') {
           k.rate(Number(e.key) as Rating);
         }
@@ -96,10 +102,10 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
     <div className="review-head">
       <h1>{title}</h1>
       <p className="muted" aria-live="polite">
-        {card ? `${session.queue.length} to go` : ''}
+        {card ? `${queue.length} to go` : ''}
       </p>
       {/* Counts cards finished for today, so a card that comes back in a few minutes does not move it. */}
-      <progress className="bar" max={session.total || 1} value={session.total - session.queue.length} aria-label="Cards finished this session" />
+      <progress className="bar" max={session.total || 1} value={Math.max(0, session.total - queue.length)} aria-label="Cards finished this session" />
     </div>
   );
 
@@ -161,7 +167,7 @@ export function Review({ store, cards, title }: { store: Store; cards: Card[]; t
         </div>
       ) : (
         <div className="ratings">
-          <button className="button primary show" onClick={() => setRevealed(true)}>
+          <button className="button primary show" onClick={reveal}>
             Show answer <kbd>Space</kbd>
           </button>
         </div>
