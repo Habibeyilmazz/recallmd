@@ -1,7 +1,7 @@
 // IndexedDB persistence. The dataset is small, so it is loaded whole and written through.
 import { cleanSettings, type AppData, type Settings } from './data';
 import type { ImportPlan } from './importer';
-import type { Card } from './parser';
+import { byNote, type Card } from './parser';
 import type { CardState, ReviewLog } from './scheduler';
 
 const STORES = ['cards', 'states', 'logs', 'kv'] as const;
@@ -53,7 +53,7 @@ export async function loadAll(): Promise<AppData & { sampleLoaded: boolean }> {
     done<unknown>(kv.get('sampleLoaded')),
   ]);
   return {
-    cards,
+    cards: cards.sort(byNote), // IndexedDB returns them in id order
     states: new Map(ids.map((id, i) => [String(id), values[i]!])),
     logs,
     settings: cleanSettings(settings),

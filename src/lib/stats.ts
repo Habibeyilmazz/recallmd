@@ -101,3 +101,40 @@ export function countCards(cards: Card[], states: ReadonlyMap<string, CardState>
   }
   return c;
 }
+
+export interface DeckRow {
+  /** Full deck path, e.g. "Vault/bio/cells". */
+  path: string;
+  /** Last path segment. */
+  name: string;
+  depth: number;
+  /** Counts for this deck including everything below it. */
+  counts: Counts;
+}
+
+export const inDeck = (card: Card, deck: string) => card.deck === deck || card.deck.startsWith(`${deck}/`);
+
+/** Every deck and parent folder as a flat list in tree order (parents directly above their children). */
+export function deckRows(cards: Card[], states: ReadonlyMap<string, CardState>, now: number): DeckRow[] {
+  const groups = new Map<string, Card[]>();
+  for (const card of cards) {
+    const parts = card.deck.split('/');
+    for (let n = 1; n <= parts.length; n++) {
+      const path = parts.slice(0, n).join('/');
+      const list = groups.get(path);
+      if (list) list.push(card);
+      else groups.set(path, [card]);
+    }
+  }
+  const bySegments = (a: string[], b: string[]): number => {
+    for (let i = 0; i < Math.min(a.length, b.length); i++) {
+      const order = a[i]!.localeCompare(b[i]!);
+      if (order) return order;
+    }
+    return a.length - b.length;
+  };
+  return [...groups]
+    .map(([path, list]) => ({ path, parts: path.split('/'), counts: countCards(list, states, now) }))
+    .sort((a, b) => bySegments(a.parts, b.parts))
+    .map(({ path, parts, counts }) => ({ path, name: parts[parts.length - 1]!, depth: parts.length - 1, counts }));
+}

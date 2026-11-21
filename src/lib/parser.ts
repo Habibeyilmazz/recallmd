@@ -16,6 +16,13 @@ export interface Card {
   source: string;
   /** 1-based line in the source. */
   line: number;
+  /** Position among the note's cards; several cards can share a line. */
+  seq: number;
+}
+
+/** Deck order, then the order the cards appear in their notes. */
+export function byNote(a: Card, b: Card): number {
+  return a.deck.localeCompare(b.deck) || a.source.localeCompare(b.source) || a.seq - b.seq;
 }
 
 export interface ParseOptions {
@@ -242,7 +249,7 @@ export function parseMarkdown(text: string, source: string, options: ParseOption
       continue;
     }
     ids.add(id);
-    cards.push({ id, kind: d.kind, front: d.front, back: d.back, deck, tags: [...tags], source, line: d.line });
+    cards.push({ id, kind: d.kind, front: d.front, back: d.back, deck, tags: [...tags], source, line: d.line, seq: cards.length });
   }
   return { cards, warnings };
 }

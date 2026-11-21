@@ -19,6 +19,7 @@ Which key shows the answer during a review? :: Space (Enter works too).
 ## Cloze deletions
 
 Wrap the part to hide in ==two equals signs== and recallmd makes a fill-in-the-blank card.
+
 recallmd schedules reviews with the ==FSRS== algorithm, and stores everything in ==your browser==, not on a server.
 
 ## Multi-line cards

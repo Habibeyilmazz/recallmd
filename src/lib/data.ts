@@ -67,7 +67,7 @@ function isCard(v: unknown): v is Card {
     isString(v.id) && v.id.length > 0 &&
     (v.kind === 'basic' || v.kind === 'cloze' || v.kind === 'heading') &&
     isString(v.front) && isString(v.back) && isString(v.deck) && isString(v.source) &&
-    isNumber(v.line) &&
+    isNumber(v.line) && isNumber(v.seq) &&
     Array.isArray(v.tags) && v.tags.every(isString)
   );
 }
