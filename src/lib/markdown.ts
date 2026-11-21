@@ -28,6 +28,19 @@ function math(tex: string, displayMode: boolean): string {
   return katex.renderToString(tex, { displayMode, throwOnError: false });
 }
 
+const IMAGE = /\.(avif|bmp|gif|jpe?g|png|svg|webp)$/i;
+export const isImage = (name: string) => IMAGE.test(name.trim());
+
+/**
+ * A local image is stored apart from the note, so it is looked up after rendering
+ * (`src/views/Markdown.tsx` swaps this placeholder for the image). Until then, or when it
+ * was never imported, its name is shown.
+ */
+function localImage(ref: string, alt: string, width = ''): string {
+  const attrs = `data-ref="${escapeHtml(ref)}" data-alt="${escapeHtml(alt)}"${width ? ` data-width="${width}"` : ''}`;
+  return `<em ${attrs}>[image: ${escapeHtml(alt || ref)}]</em>`;
+}
+
 const marked = new Marked({
   gfm: true,
   breaks: true, // like Obsidian: a single newline is a line break
@@ -37,10 +50,9 @@ const marked = new Marked({
       const body = hljs && language && hljs.getLanguage(language) ? hljs.highlight(text, { language }).value : escapeHtml(text);
       return `<pre><code>${body}</code></pre>`;
     },
-    // Only web images can be shown: files next to a note (vault attachments) are not imported.
     image({ href, text }) {
-      if (!/^https?:\/\//i.test(href)) return `<em>[image: ${escapeHtml(text || href)}]</em>`;
-      return `<img src="${escapeHtml(href)}" alt="${escapeHtml(text)}">`;
+      if (/^https?:\/\//i.test(href)) return `<img src="${escapeHtml(href)}" alt="${escapeHtml(text)}">`;
+      return isImage(href) ? localImage(href, text) : `<em>[image: ${escapeHtml(text || href)}]</em>`;
     },
   },
   extensions: [
@@ -83,7 +95,7 @@ const marked = new Marked({
     },
     {
       // Obsidian [[Page]] and [[Page|label]] links: there is no page to go to, so show the label.
-      // ![[file]] embeds are not imported either, so they are named instead of shown.
+      // ![[image.png]] embeds show the image (`|300` sets its width); other embeds are named.
       name: 'wikilink',
       level: 'inline',
       start: (src) => {
@@ -93,9 +105,14 @@ const marked = new Marked({
       tokenizer(src) {
         // Bounded lengths keep this linear: unbounded, a long line of `![[a|` took seconds.
         const m = /^(!?)\[\[([^\]|\n]{1,500})(?:\|([^\]\n]{1,500}))?\]\]/.exec(src);
-        if (m) return { type: 'wikilink', raw: m[0], text: m[1] ? m[2]! : (m[3] ?? m[2]!), embed: !!m[1] };
+        if (m) return { type: 'wikilink', raw: m[0], text: m[1] ? m[2]! : (m[3] ?? m[2]!), embed: !!m[1], label: m[3] ?? '' };
       },
-      renderer: (token) => (token.embed ? `<em>[embed: ${escapeHtml(token.text)}]</em>` : escapeHtml(token.text)),
+      renderer(token) {
+        if (!token.embed) return escapeHtml(token.text);
+        if (!isImage(token.text)) return `<em>[embed: ${escapeHtml(token.text)}]</em>`;
+        const width = /^\s*(\d{1,4})(?:x\d{1,4})?\s*$/.exec(token.label)?.[1];
+        return localImage(token.text, width ? '' : token.label, width);
+      },
     },
   ],
 });
@@ -106,6 +123,16 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
     node.setAttribute('rel', 'noopener noreferrer');
   }
 });
+
+/** References to local images in `md`, as written: what the renderer leaves for `Markdown.tsx` to fill in. */
+export function imageRefs(md: string): string[] {
+  const refs: string[] = [];
+  marked.walkTokens(marked.lexer(md), (token) => {
+    if (token.type === 'image' && !/^https?:\/\//i.test(token.href) && isImage(token.href)) refs.push(token.href);
+    if (token.type === 'wikilink' && token.embed && isImage(token.text)) refs.push(token.text);
+  });
+  return refs;
+}
 
 /** Renders note Markdown, which is untrusted input, to sanitized HTML. */
 export function renderMarkdown(md: string): string {

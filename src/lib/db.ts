@@ -4,7 +4,7 @@ import type { ImportPlan } from './importer';
 import { byNote, type Card } from './parser';
 import type { CardState, ReviewLog } from './scheduler';
 
-const STORES = ['cards', 'states', 'logs', 'kv'] as const;
+const STORES = ['cards', 'states', 'logs', 'kv', 'media'] as const;
 type Store = (typeof STORES)[number];
 
 const done = <T>(r: IDBRequest<T>) =>
@@ -16,12 +16,15 @@ const done = <T>(r: IDBRequest<T>) =>
 let opening: Promise<IDBDatabase> | undefined;
 function open(): Promise<IDBDatabase> {
   opening ??= new Promise((resolve, reject) => {
-    const r = indexedDB.open('recallmd', 1);
-    r.onupgradeneeded = () => {
-      r.result.createObjectStore('cards', { keyPath: 'id' });
-      r.result.createObjectStore('states'); // key: card id
-      r.result.createObjectStore('logs', { autoIncrement: true });
-      r.result.createObjectStore('kv');
+    const r = indexedDB.open('recallmd', 2);
+    r.onupgradeneeded = (e) => {
+      if (e.oldVersion < 1) {
+        r.result.createObjectStore('cards', { keyPath: 'id' });
+        r.result.createObjectStore('states'); // key: card id
+        r.result.createObjectStore('logs', { autoIncrement: true });
+        r.result.createObjectStore('kv');
+      }
+      r.result.createObjectStore('media'); // key: image path, value: the file
     };
     r.onsuccess = () => resolve(r.result);
     r.onerror = () => reject(r.error);
@@ -57,7 +60,7 @@ async function write<T>(stores: Store[], work: (s: Record<Store, IDBObjectStore>
 }
 
 export async function loadAll(): Promise<AppData & { sampleLoaded: boolean }> {
-  const tx = (await open()).transaction(STORES, 'readonly');
+  const tx = (await open()).transaction(['cards', 'states', 'logs', 'kv'], 'readonly');
   const states = tx.objectStore('states');
   const kv = tx.objectStore('kv');
   const [cards, ids, values, logs, settings, sampleLoaded, suspended] = await Promise.all([
@@ -79,9 +82,15 @@ export async function loadAll(): Promise<AppData & { sampleLoaded: boolean }> {
   };
 }
 
-/** Writes an import. Progress of removed cards is kept, so re-adding a note restores it. */
-export function applyImport(plan: ImportPlan, states: ReadonlyMap<string, CardState>): Promise<void> {
-  return write(['cards', 'states'], (s) => {
+export interface ImageFile {
+  path: string;
+  file: Blob;
+}
+
+/** Writes an import and the images its cards show. Progress of removed cards is kept, so re-adding a note restores it. */
+export function applyImport(plan: ImportPlan, states: ReadonlyMap<string, CardState>, images: ImageFile[] = []): Promise<void> {
+  return write(['cards', 'states', 'media'], (s) => {
+    for (const { path, file } of images) s.media.put(file, path);
     for (const id of plan.remove) s.cards.delete(id);
     for (const card of plan.upsert) s.cards.put(card);
     for (const [from, to] of plan.moves) {
@@ -90,6 +99,17 @@ export function applyImport(plan: ImportPlan, states: ReadonlyMap<string, CardSt
       s.states.delete(from);
     }
   });
+}
+
+/** Paths of every stored image. */
+export async function imagePaths(): Promise<string[]> {
+  const tx = (await open()).transaction('media', 'readonly');
+  return (await done(tx.objectStore('media').getAllKeys())).map(String);
+}
+
+export async function getImage(path: string): Promise<Blob | undefined> {
+  const tx = (await open()).transaction('media', 'readonly');
+  return done<Blob | undefined>(tx.objectStore('media').get(path));
 }
 
 export function deleteCards(ids: string[]): Promise<void> {
@@ -126,7 +146,7 @@ export function markSampleLoaded(): Promise<void> {
   return write(['kv'], (s) => void s.kv.put(true, 'sampleLoaded'));
 }
 
-/** Replaces everything with `data` (restoring a backup), or wipes it when `data` is omitted. */
+/** Replaces everything with `data` (restoring a backup, which keeps stored images), or wipes it when `data` is omitted. */
 export function replaceAll(data?: AppData): Promise<void> {
   return write([...STORES], (s) => {
     s.cards.clear();
@@ -134,6 +154,7 @@ export function replaceAll(data?: AppData): Promise<void> {
     s.logs.clear();
     s.kv.put(true, 'sampleLoaded');
     if (!data) {
+      s.media.clear();
       s.kv.delete('settings');
       return void s.kv.delete('suspended');
     }

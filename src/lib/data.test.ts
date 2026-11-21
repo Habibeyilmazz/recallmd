@@ -163,14 +163,25 @@ describe('db', () => {
     expect((await db.loadAll()).suspended).toEqual(new Set(['y']));
   });
 
+  it('stores the images an import brings, replacing one with the same path', async () => {
+    const plan = planImport([], () => false, [{ path: 'v/a.md', text: 'q3 :: ![[cell.png]]' }]);
+    await db.applyImport(plan, new Map(), [{ path: 'v/img/cell.png', file: new Blob(['old'], { type: 'image/png' }) }]);
+    await db.applyImport(plan, new Map(), [{ path: 'v/img/cell.png', file: new Blob(['new'], { type: 'image/png' }) }]);
+    expect(await db.imagePaths()).toEqual(['v/img/cell.png']);
+    expect(await (await db.getImage('v/img/cell.png'))!.text()).toBe('new');
+    expect(await db.getImage('v/img/other.png')).toBeUndefined();
+  });
+
   it('restores a backup over whatever was there', async () => {
     const data = sampleData();
     await db.replaceAll(data);
     expect(await db.loadAll()).toEqual({ ...data, sampleLoaded: true });
+    expect(await db.imagePaths()).toEqual(['v/img/cell.png']); // a backup holds no images, so restoring keeps them
   });
 
   it('wipes everything but does not bring the sample deck back', async () => {
     await db.replaceAll();
     expect(await db.loadAll()).toEqual({ cards: [], states: new Map(), logs: [], settings: DEFAULT_SETTINGS, sampleLoaded: true, suspended: new Set() });
+    expect(await db.imagePaths()).toEqual([]);
   });
 });
