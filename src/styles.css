@@ -281,12 +281,15 @@ progress.bar::-moz-progress-bar {
   background: var(--hl);
 }
 @media (prefers-color-scheme: light) {
-  /* yellow on pale grey needs an edge to be visible */
+  /* Yellow on pale grey is 1.1:1, so the fill gets an edge that is 3:1 against the track. */
   progress.bar {
     box-shadow: inset 0 0 0 1px #b9c2cb;
   }
   progress.bar::-webkit-progress-value {
-    box-shadow: inset 0 0 0 1px #c9a800;
+    box-shadow: inset 0 0 0 1px #857000;
+  }
+  progress.bar::-moz-progress-bar {
+    box-shadow: inset 0 0 0 1px #857000;
   }
 }
 
