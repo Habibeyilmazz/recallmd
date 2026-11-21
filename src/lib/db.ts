@@ -29,6 +29,16 @@ function open(): Promise<IDBDatabase> {
   return opening;
 }
 
+// Every committed write is announced to this browser's other recallmd tabs, so none of
+// them schedules a card from a state another tab has already replaced.
+const channel = new BroadcastChannel('recallmd');
+
+/** Calls `listener` when another tab has changed the stored data. Returns the unsubscribe function. */
+export function onChangeElsewhere(listener: () => void): () => void {
+  channel.addEventListener('message', listener);
+  return () => channel.removeEventListener('message', listener);
+}
+
 /** Runs `work` in one readwrite transaction; resolves once it has committed. */
 async function write<T>(stores: Store[], work: (s: Record<Store, IDBObjectStore>) => T): Promise<T> {
   const tx = (await open()).transaction(stores, 'readwrite');
@@ -37,7 +47,10 @@ async function write<T>(stores: Store[], work: (s: Record<Store, IDBObjectStore>
   // before the tab is closed or reloaded would otherwise be aborted and lost.
   tx.commit();
   await new Promise<void>((resolve, reject) => {
-    tx.oncomplete = () => resolve();
+    tx.oncomplete = () => {
+      channel.postMessage(null);
+      resolve();
+    };
     tx.onerror = tx.onabort = () => reject(tx.error);
   });
   return result;

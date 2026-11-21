@@ -43,13 +43,18 @@ export function useStore(): { store?: Store; error?: string; clearError: () => v
     })().catch(fail);
   }, [fail, reload]);
 
-  // Another tab may have studied or imported in the meantime: pick that up on the way back in.
+  // Another tab studied or imported: reload as soon as it says so. Coming back to the tab
+  // reloads too, in case the browser had frozen it and the message was missed.
   useEffect(() => {
     const refresh = () => {
       if (document.visibilityState === 'visible') reload().catch(fail);
     };
     document.addEventListener('visibilitychange', refresh);
-    return () => document.removeEventListener('visibilitychange', refresh);
+    const unsubscribe = db.onChangeElsewhere(() => reload().catch(fail));
+    return () => {
+      document.removeEventListener('visibilitychange', refresh);
+      unsubscribe();
+    };
   }, [fail, reload]);
 
   if (!data) return { error, clearError: () => setError(undefined) };
@@ -75,7 +80,8 @@ export function useStore(): { store?: Store; error?: string; clearError: () => v
           const states = new Map(d.states);
           if (previous) states.set(id, previous);
           else states.delete(id);
-          return { ...d, states, logs: d.logs.filter((l) => l !== log) };
+          // Matched by value: a reload from storage replaces the log objects.
+          return { ...d, states, logs: d.logs.filter((l) => l.id !== id || l.t !== now) };
         });
       const saved = db.saveReview(next, log);
       // An answer that could not be stored must not look stored: take it back and say so.

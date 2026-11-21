@@ -73,6 +73,36 @@ test('an answer given just before the page is reloaded is not lost', async ({ pa
   await expect(page.getByText('1 of 20 reviews')).toBeVisible();
 });
 
+test('a second tab keeps up with the first, and schedules from what the first one saved', async ({ page, context }) => {
+  await open(page);
+  const other = await context.newPage();
+  await open(other);
+  const otherCard = await study(other, 'Study now'); // both tabs now hold the same first card
+  const card = await study(page, 'Study now');
+  await page.keyboard.press('Space');
+  await page.keyboard.press('4'); // Easy: the card is in review, due days from now
+  await expect(card).toContainText('Which key shows the answer');
+
+  // The other tab was never reloaded or brought to the front, but must not rate the card as if it were new.
+  await expect(otherCard).toContainText('Which two characters');
+  await other.keyboard.press('Space');
+  await expect(other.getByRole('button', { name: /Good/ }).locator('.when')).toHaveText(/^\d+d$/);
+  await other.keyboard.press('Escape');
+  await expect(other.getByRole('heading', { level: 1 })).toHaveText('9 cards to study today');
+});
+
+test('undo takes the answer back even after the tab has reloaded its data', async ({ page }) => {
+  await open(page);
+  await study(page, 'Study now');
+  await page.keyboard.press('Space');
+  await page.keyboard.press('3');
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await page.waitForTimeout(300); // let the reload from storage finish
+  await page.keyboard.press('z');
+  await page.keyboard.press('Escape');
+  await expect(page.getByText('0 of 20 reviews')).toBeVisible();
+});
+
 test('a cloze card hides one highlight and reveals it in place', async ({ page }) => {
   await open(page);
   const dialog = await importFiles(page, [md('cloze.md', 'Plant cells have a ==cell wall== made of ==cellulose==.')]);
