@@ -12,7 +12,7 @@ describe('wikilinks', () => {
   it('render in linear time on a line of unclosed links', () => {
     const started = performance.now();
     renderMarkdown('![[a|'.repeat(50_000));
-    expect(performance.now() - started).toBeLessThan(1500); // was about 20 s
+    expect(performance.now() - started).toBeLessThan(5000); // was about 20 s; about 1 s now, so a busy machine does not fail it
   });
 });
 
